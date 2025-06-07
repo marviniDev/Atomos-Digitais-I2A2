@@ -3,15 +3,18 @@ import pandas as pd
 import asyncio
 import uuid
 import tempfile
+import zipfile
+import os
 import nest_asyncio
+import json
 from fastmcp import Client
 
 
 
 nest_asyncio.apply()
 
-st.set_page_config(page_title="Analisador de Excel", layout="wide")
-st.title("📊 Analisador de Arquivo Excel")
+st.set_page_config(page_title="Analisador de CSV em ZIP", layout="wide")
+st.title("📊 Analisador de Arquivos CSV (ZIP)")
 
 # Unique user memory namespace
 if "user_id" not in st.session_state:
@@ -25,82 +28,70 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Função para analisar com IA
-async def call_agent(question: str, user_id: str, df: pd.DataFrame):
+# Função para analisar com IA (via MCP)
+async def call_agent(question: str, user_id: str, dfs: dict):
     client = Client("http://127.0.0.1:8005/sse")
     async with client:
+        # Envia todos os dataframes como dicts
         payload = {
             "question": question,
             "user_id": user_id,
-            "data": df.to_dict(orient="records")
+            "data": {name: df.to_dict(orient="records") for name, df in dfs.items()}
         }
         result = await client.call_tool("multi_analyst", payload)
         return result[0].text if result and hasattr(result[0], "text") else str(result)
 
-# Função para escrever dados no Excel via MCP
-async def write_to_excel(filepath, sheet_name, data, start_cell="A1"):
-    client = Client("http://127.0.0.1:8005/sse")
-    async with client:
-        result = await client.call_tool("write_data_to_excel", {
-            "filepath": filepath,
-            "sheet_name": sheet_name,
-            "data": data,
-            "start_cell": start_cell
-        })
-        return result[0].text if result and hasattr(result[0], "text") else str(result)
+# Upload do arquivo ZIP
+uploaded_zip = st.file_uploader("📁 Envie seu arquivo .zip contendo arquivos CSV", type="zip")
 
-# Upload do arquivo Excel
-uploaded_file = st.file_uploader("📁 Envie seu arquivo Excel", type=["xlsx", "xls"])
+if uploaded_zip:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        zip_path = os.path.join(tmpdir, "uploaded.zip")
+        with open(zip_path, "wb") as f:
+            f.write(uploaded_zip.read())
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(tmpdir)
+            csv_files = [f for f in zip_ref.namelist() if f.lower().endswith(".csv")]
 
-if uploaded_file:
-    try:
-        # salvar o uploaded_file em uma pasta aqui no src
-        st.session_state.uploaded_file = uploaded_file
-        
-        
-        df = pd.read_excel(uploaded_file)
-        
-        st.subheader("🔍 Pré-visualização dos Dados")
-        st.dataframe(df, use_container_width=True)
+        if not csv_files:
+            st.error("Nenhum arquivo CSV encontrado no ZIP.")
+        else:
+            dfs = {}
+            st.subheader("Arquivos encontrados:")
+            for csv_file in csv_files:
+                file_path = os.path.join(tmpdir, csv_file)
+                try:
+                    df = pd.read_csv(file_path)
+                    dfs[csv_file] = df
+                    st.markdown(f"**{csv_file}**")
+                    st.dataframe(df.head(3))
+                except Exception as e:
+                    st.warning(f"Erro ao ler {csv_file}: {e}")
 
-        st.markdown("## 💬 Pergunta ou ação")
-        tab1, tab2 = st.tabs(["🔎 Analisar com IA", "✍️ Escrever no Excel"])
+            st.markdown("## 💬 Pergunta ou ação")
+            question = st.text_input("Digite sua pergunta sobre os arquivos...")
 
-        # Aba: Analisar com IA
-        with tab1:
-            question = st.text_input("Digite sua pergunta...")
             if question:
                 with st.chat_message("user"):
                     st.markdown(question)
                 st.session_state.messages.append({"role": "user", "content": question})
 
                 with st.spinner("Analisando os dados com IA..."):
-                    response = asyncio.run(call_agent(question, st.session_state.user_id, df))
+                    response = asyncio.run(call_agent(question, st.session_state.user_id, dfs))
+
+                # Tenta extrair o texto do campo 'raw' se for JSON
+                try:
+                    # Se já for dict, não precisa carregar
+                    if isinstance(response, dict):
+                        answer = response.get("raw", str(response))
+                    else:
+                        # Tenta converter de string para dict
+                        answer = json.loads(response).get("raw", str(response))
+                except Exception:
+                    answer = str(response)
 
                 with st.chat_message("assistant"):
-                    st.markdown(response)
-                st.session_state.messages.append({"role": "assistant", "content": response})
-
-        # Aba: Escrever no Excel
-        with tab2:
-            sheet_name = st.text_input("📄 Nome da planilha de destino", value="Sheet1")
-            start_cell = st.text_input("🔢 Célula de início", value="A1")
-
-            if st.button("✍️ Enviar dados para o Excel"):
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
-                    tmp.write(uploaded_file.getbuffer())
-                    tmp_path = tmp.name
-
-                st.info("📡 Enviando dados para o MCP...")
-                result = asyncio.run(write_to_excel(
-                    filepath=tmp_path,
-                    sheet_name=sheet_name,
-                    data=df.to_dict(orient="records"),
-                    start_cell=start_cell
-                ))
-                st.success(f"✅ {result}")
-
-    except Exception as e:
-        st.error(f"Erro ao ler o arquivo: {e}")
+                    st.markdown(answer)
+                st.session_state.messages.append({"role": "assistant", "content": answer})
 else:
-    st.info("Envie um arquivo para começar.")
+    st.info("Envie um arquivo ZIP contendo arquivos CSV para começar.")
