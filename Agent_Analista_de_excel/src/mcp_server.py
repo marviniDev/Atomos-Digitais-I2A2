@@ -4,9 +4,10 @@ from mcp import StdioServerParameters
 import os
 from fastmcp import FastMCP
 from langchain_openai import ChatOpenAI
-import agentops
 from crewai.memory import EntityMemory
 from crewai.memory.storage.rag_storage import RAGStorage
+import pandas as pd
+import json
 
 
 from dotenv import load_dotenv
@@ -29,61 +30,66 @@ def get_user_memory(user_id: str):
 
 
 @mcp.tool(name="multi_analyst")
-async def multi_analyst(filepath: str, user_id: str, question: str):
-    print("Cheguei aqui")
-    # Configuração para o servidor de parâmetros do Excel
-    excel_params = StdioServerParameters(
-        command='uvx',
-        args=["excel-mcp-server", "stdio"],
-        env=os.environ
-    )
-    
-    llm_excel = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo")
+async def multi_analyst(data: dict, user_id: str, question: str):
+    llm_excel = ChatOpenAI(temperature=0.3, model_name="gpt-3.5-turbo")
     memory = get_user_memory(user_id)
 
     try:
-        # Adaptador do MCP
-        with MCPServerAdapter(excel_params) as excel_tools:
-            # Criação do agente Excel
-            Agent_excel = Agent(
-                role="Analista de Excel",
-                goal="Objetivo é efetuar analise de dados para tomada de decisão",  
-                backstory="Eu sou Analista de Excel e tenho como objetivo efetuar analise de dados para tomada de decisão",
-                tools=excel_tools,
-                llm=llm_excel,
-                verbose=True,
-                memory=memory,
-            )
+        Agent_csv = Agent(
+            role="Analista de Dados CSV",
+            goal="Efetuar análise de dados CSV para tomada de decisão",
+            backstory="Sou especialista em análise de arquivos CSV.",
+            tools=[],  # Nenhuma ferramenta externa, só LLM
+            llm=llm_excel,
+            verbose=True,
+            memory=memory,
+        )
 
-            # Tarefa de análise
-            excel_Task = Task(
-                description=f"De acordo com a pergunta {question}, efetue uma análise de dados para tomada de decisão desse excel: {filepath}",
-                expected_output=("retorne a analise de dados para tomada de decisão",),
-                agent=Agent_excel,
-                memory=memory,
-            )
+        arquivos = ', '.join(list(data.keys()))
+        colunas_info = ""
+        contagens = ""
+        dados_json = ""
 
-            # Crew para execução da tarefa
-            crew = Crew(
-                agents=[Agent_excel],
-                tasks=[excel_Task],
-                process=Process.sequential,
-                verbose=True,
-                max_iterations=1,
-                memory=True,
-                entity_memory=memory,
-            )
+        # Inclui todas as colunas, contagem e TODOS os dados em JSON (atenção ao tamanho!)
+        for nome, linhas in data.items():
+            df = pd.DataFrame(linhas)
+            colunas_info += f"\nArquivo: {nome}\nColunas: {list(df.columns)}"
+            contagens += f"\nO arquivo {nome} possui {df.shape[0]} linhas."
+            # Envia todos os dados do arquivo em JSON
+            dados_json += f"\nArquivo: {nome}\nDados completos (JSON):\n{json.dumps(linhas, ensure_ascii=False)}\n"
 
-            # Executa a tarefa do Crew
-            result = await crew.kickoff_async()
-            return result  # Retorna o resultado da análise
+        descricao_dados = (
+            f"Você recebeu os seguintes arquivos CSV: {arquivos}.\n"
+            f"{colunas_info}\n"
+            f"{contagens}\n"
+            f"{dados_json}\n"
+            f"Pergunta do usuário: {question}\n"
+            "Utilize os dados completos fornecidos acima para responder de forma clara, objetiva e quantitativa sempre que possível. "
+            "Se a pergunta envolver busca, contagem, soma, média, cruzamento de informações entre arquivos ou outras operações, utilize os dados completos fornecidos. "
+            "Se não for possível responder com os dados apresentados, explique o motivo."
+        )
+
+        excel_Task = Task(
+            description=descricao_dados,
+            expected_output="retorne a análise de dados para tomada de decisão",
+            agent=Agent_csv,
+            memory=memory,
+        )
+
+        crew = Crew(
+            agents=[Agent_csv],
+            tasks=[excel_Task],
+            process=Process.sequential,
+            verbose=True,
+            max_iterations=1,
+            memory=True,
+            entity_memory=memory,
+        )
+
+        result = await crew.kickoff_async()
+        return result  # Retorna o resultado da análise
     finally:
-        # Garante que o adaptador seja parado corretamente
-        for adapter in excel_tools:
-            try:
-                adapter.stop()
-            except Exception:
-                pass
+        pass  # Não há excel_tools para parar
 
 
 if __name__ == "__main__":
