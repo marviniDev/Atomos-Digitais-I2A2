@@ -1,20 +1,19 @@
-from crewai import Agent, Task, Crew, Process, LLM
+from crewai import Agent, Task, Crew, Process
 from crewai_tools import MCPServerAdapter
 from mcp import StdioServerParameters
 import os
 from fastmcp import FastMCP
 from langchain_openai import ChatOpenAI
-import agentops
 from crewai.memory import EntityMemory
 from crewai.memory.storage.rag_storage import RAGStorage
-
-
 from dotenv import load_dotenv
+
 load_dotenv()
 
-mcp = FastMCP(name='agent-server')  # nome para o servidor
+# Inicializa o servidor MCP
+mcp = FastMCP(name='agent-server')
 
-# Function for per-user memory
+# Função para obter memória por usuário
 def get_user_memory(user_id: str):
     return EntityMemory(
         storage=RAGStorage(
@@ -27,43 +26,61 @@ def get_user_memory(user_id: str):
         )
     )
 
-
+# Ferramenta registrada no servidor MCP
 @mcp.tool(name="multi_analyst")
 async def multi_analyst(filepath: str, user_id: str, question: str):
     print("Cheguei aqui")
-    # Configuração para o servidor de parâmetros do Excel
+    print(f"Filepath: {filepath}")
+    print(f"User ID: {user_id}")
+    print(f"Question: {question}")
+    
+    # Caminho absoluto
+    absolute_filepath = os.path.abspath(filepath)
+    print(f"Caminho absoluto: {absolute_filepath}")
+
+    # Configuração do servidor do Excel (MCP Adapter)
     excel_params = StdioServerParameters(
         command='uvx',
         args=["excel-mcp-server", "stdio"],
         env=os.environ
     )
-    
+    print("Cheguei aqui2")
+
     llm_excel = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo")
     memory = get_user_memory(user_id)
 
     try:
-        # Adaptador do MCP
+        print("Cheguei aqui no try")
+
         with MCPServerAdapter(excel_params) as excel_tools:
-            # Criação do agente Excel
+            # Define o agente
             Agent_excel = Agent(
                 role="Analista de Excel",
-                goal="Objetivo é efetuar analise de dados para tomada de decisão",  
-                backstory="Eu sou Analista de Excel e tenho como objetivo efetuar analise de dados para tomada de decisão",
+                goal="Efetuar análises precisas com base nos dados de planilhas Excel para apoiar a tomada de decisões estratégicas.",
+                backstory="Sou um especialista em análise de planilhas com experiência em transformar dados brutos em insights claros e acionáveis. Sei usar ferramentas avançadas de Excel como leitura de dados, criação de gráficos, tabelas dinâmicas e análises estatísticas.",
                 tools=excel_tools,
                 llm=llm_excel,
                 verbose=True,
                 memory=memory,
             )
 
-            # Tarefa de análise
+            # Prompt mais claro e acionável para forçar o uso das ferramentas
+            prompt_description = (
+                f"Acesse o arquivo Excel localizado em '{absolute_filepath}', leia as primeiras abas e "
+                f"liste os nomes das colunas e exemplos de dados (as 10 primeiras linhas). Em seguida, responda à pergunta: '{question}'. "
+                f"Se necessário, utilize ferramentas como 'read_data_from_excel', 'get_metadata', 'create_pivot_table', etc. "
+                f"Retorne uma análise clara e focada para apoiar a tomada de decisão."
+            )
+
+            # Define a tarefa
             excel_Task = Task(
-                description=f"De acordo com a pergunta {question}, efetue uma análise de dados para tomada de decisão desse excel: {filepath}",
-                expected_output=("retorne a analise de dados para tomada de decisão",),
+                description=prompt_description,
+                expected_output="Análise detalhada baseada nos dados reais da planilha, com colunas analisadas, padrões observados e possíveis recomendações.",
                 agent=Agent_excel,
                 memory=memory,
             )
 
-            # Crew para execução da tarefa
+            # Define o processo de execução
             crew = Crew(
                 agents=[Agent_excel],
                 tasks=[excel_Task],
@@ -74,17 +91,20 @@ async def multi_analyst(filepath: str, user_id: str, question: str):
                 entity_memory=memory,
             )
 
-            # Executa a tarefa do Crew
+            # Executa a tarefa
             result = await crew.kickoff_async()
-            return result  # Retorna o resultado da análise
+            return result
+
+    except Exception as e:
+        print(f"[Erro ao executar análise]: {e}")
+        raise
     finally:
-        # Garante que o adaptador seja parado corretamente
         for adapter in excel_tools:
             try:
                 adapter.stop()
             except Exception:
                 pass
 
-
+# Executa o servidor MCP
 if __name__ == "__main__":
     mcp.run(transport="sse", host="127.0.0.1", port=8005)
