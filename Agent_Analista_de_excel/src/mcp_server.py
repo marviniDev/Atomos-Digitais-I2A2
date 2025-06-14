@@ -4,7 +4,6 @@ from mcp import StdioServerParameters
 import os
 from fastmcp import FastMCP
 from langchain_openai import ChatOpenAI
-import agentops
 from crewai.memory import EntityMemory
 from crewai.memory.storage.rag_storage import RAGStorage
 
