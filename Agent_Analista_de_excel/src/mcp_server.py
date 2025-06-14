@@ -1,83 +1,97 @@
-from crewai import Agent, Task, Crew, Process, LLM
+from crewai import Agent, Task, Crew, Process
 from crewai_tools import MCPServerAdapter
 from mcp import StdioServerParameters
 import os
 from fastmcp import FastMCP
 from langchain_openai import ChatOpenAI
-from crewai.memory import EntityMemory
-from crewai.memory.storage.rag_storage import RAGStorage
-
-
 from dotenv import load_dotenv
+import pandas as pd
+
 load_dotenv()
 
-mcp = FastMCP(name='agent-server')  # nome para o servidor
-
-# Function for per-user memory
-def get_user_memory(user_id: str):
-    return EntityMemory(
-        storage=RAGStorage(
-            embedder_config={
-                "provider": "openai",
-                "config": {"model": "text-embedding-3-small"},
-            },
-            type="short_term",
-            path=f"./memory_store/{user_id}/",
-        )
-    )
+# Inicializa o servidor MCP
+mcp = FastMCP(name='agent-server')
 
 
 @mcp.tool(name="multi_analyst")
 async def multi_analyst(filepath: str, user_id: str, question: str):
-    print("Cheguei aqui")
-    # Configuração para o servidor de parâmetros do Excel
+    print("Iniciando análise")
+    absolute_filepath = os.path.abspath(filepath)
+    print(f"Arquivo: {absolute_filepath}")
+    print(f"Usuário: {user_id}")
+    print(f"Pergunta: {question}")
+
+    ext = os.path.splitext(filepath)[1].lower()
+    sheet_info = []
+    preview_info = ""
+
+    try:
+        if ext == ".csv":
+            df = pd.read_csv(filepath, nrows=20)
+            preview_info = f"Colunas: {df.columns.tolist()}. Linhas de exemplo: {df.head(2).to_dict(orient='records')}"
+            sheet_info = ["CSV"]
+        elif ext in [".xlsx", ".xls"]:
+            xls = pd.ExcelFile(filepath, engine="openpyxl")
+            first_sheet = xls.sheet_names[0]
+            df = xls.parse(first_sheet, nrows=20)
+            preview_info = f"Aba: {first_sheet}, Colunas: {df.columns.tolist()}. Linhas: {df.head(2).to_dict(orient='records')}"
+            sheet_info = xls.sheet_names
+        else:
+            raise Exception("Formato de arquivo não suportado.")
+    except Exception as e:
+        print(f"[Erro ao ler arquivo]: {e}")
+        raise
+
+    # Configuração do servidor MCP
     excel_params = StdioServerParameters(
         command='uvx',
         args=["excel-mcp-server", "stdio"],
         env=os.environ
     )
-    
+
     llm_excel = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo")
-    memory = get_user_memory(user_id)
 
     try:
-        # Adaptador do MCP
         with MCPServerAdapter(excel_params) as excel_tools:
-            # Criação do agente Excel
-            Agent_excel = Agent(
-                role="Analista de Excel",
-                goal="Objetivo é efetuar analise de dados para tomada de decisão",  
-                backstory="Eu sou Analista de Excel e tenho como objetivo efetuar analise de dados para tomada de decisão",
+            agent = Agent(
+                role="Analista de Dados",
+                goal="Analisar dados de forma objetiva e precisa",
+                backstory="Sou um analista especializado em dados tabulares, com foco em CSV e Excel. Respondo perguntas com base nos dados.",
                 tools=excel_tools,
                 llm=llm_excel,
-                verbose=True,
-                memory=memory,
+                verbose=False,
             )
 
-            # Tarefa de análise
-            excel_Task = Task(
-                description=f"De acordo com a pergunta {question}, efetue uma análise de dados para tomada de decisão desse excel: {filepath}",
-                expected_output=("retorne a analise de dados para tomada de decisão",),
-                agent=Agent_excel,
-                memory=memory,
+            prompt = (
+                f"Acesse o arquivo '{os.path.basename(filepath)}', localizado em '{absolute_filepath}'. "
+                f"Tipo: {ext}, Abas disponíveis: {sheet_info}. "
+                f"Preview dos dados: {preview_info}. "
+                f"Pergunta do usuário: '{question}'. "
+                f"Responda com base nos dados, de forma clara, sem repetir o conteúdo completo do arquivo."
             )
 
-            # Crew para execução da tarefa
+            task = Task(
+                description=prompt,
+                expected_output="Resposta concisa baseada nos dados reais, com foco em colunas e padrões relevantes.",
+                agent=agent,
+            )
+
             crew = Crew(
-                agents=[Agent_excel],
-                tasks=[excel_Task],
-                process=Process.sequential,
-                verbose=True,
+                agents=[agent],
+                tasks=[task],
+                verbose=False,
                 max_iterations=1,
-                memory=True,
-                entity_memory=memory,
+                memory=False,
             )
 
-            # Executa a tarefa do Crew
             result = await crew.kickoff_async()
-            return result  # Retorna o resultado da análise
+            return result
+
+    except Exception as e:
+        print(f"[Erro ao executar análise]: {e}")
+        raise
+
     finally:
-        # Garante que o adaptador seja parado corretamente
         for adapter in excel_tools:
             try:
                 adapter.stop()
@@ -85,5 +99,6 @@ async def multi_analyst(filepath: str, user_id: str, question: str):
                 pass
 
 
+# Executa o servidor MCP
 if __name__ == "__main__":
     mcp.run(transport="sse", host="127.0.0.1", port=8005)
