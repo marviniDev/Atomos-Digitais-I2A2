@@ -23,7 +23,7 @@ A arquitetura do projeto integra um servidor MCP (Multi-Crew Protocol) para orqu
    ```sh
    git clone https://github.com/seu-usuario/Atomos-Digitais-I2A2.git
    cd Atomos-Digitais-I2A2
-   cd Agent_Analista_de_excel
+   cd agent_csv_analyzer
    ```
 
 2. **Crie e ative um ambiente virtual:**
@@ -47,7 +47,7 @@ A arquitetura do projeto integra um servidor MCP (Multi-Crew Protocol) para orqu
 ## Estrutura do Projeto
 
 ```
-Agent_Analista_de_excel/
+agent_csv_analyzer/
 │
 ├── main.py                # Orquestrador: inicia o servidor MCP e o app 
 ├── requirements.txt       # Dependências do projeto
