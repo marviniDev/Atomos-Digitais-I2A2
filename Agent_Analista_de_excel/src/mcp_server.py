@@ -1,96 +1,218 @@
-from crewai import Agent, Task, Crew, Process, LLM
-from crewai_tools import MCPServerAdapter
-from mcp import StdioServerParameters
-import os
 from fastmcp import FastMCP
+from crewai import Agent, Task, Crew, Process
 from langchain_openai import ChatOpenAI
-from crewai.memory import EntityMemory
-from crewai.memory.storage.rag_storage import RAGStorage
-import pandas as pd
+from typing import Dict, List, Any
 import json
+import logging
+import os
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
-from dotenv import load_dotenv
-load_dotenv()
+# Initialize OpenAI client
+client = None
 
-mcp = FastMCP(name='agent-server')  # nome para o servidor
-
-# Function for per-user memory
-def get_user_memory(user_id: str):
-    return EntityMemory(
-        storage=RAGStorage(
-            embedder_config={
-                "provider": "openai",
-                "config": {"model": "text-embedding-3-small"},
-            },
-            type="short_term",
-            path=f"./memory_store/{user_id}/",
-        )
+def initialize_openai(api_key: str):
+    global client
+    client = ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0.1
     )
 
+def create_sql_analyst_agent() -> Agent:
+    """Create an agent specialized in SQL analysis"""
+    logger.info("Creating SQL Analyst agent...")
+    return Agent(
+        role='SQL Analyst',
+        goal='Generate accurate SQL queries based on user questions and database schema',
+        backstory="""You are an expert SQL analyst with years of experience in database management and query optimization.
+        Your specialty is understanding user questions and translating them into precise SQL queries.""",
+        llm=client,
+        verbose=True,
+        tools=[],
+    )
 
-@mcp.tool(name="multi_analyst")
-async def multi_analyst(data: dict, user_id: str, question: str):
-    llm_excel = ChatOpenAI(temperature=0.3, model_name="gpt-3.5-turbo")
-    memory = get_user_memory(user_id)
+def create_data_analyst_agent() -> Agent:
+    """Create an agent specialized in data analysis and interpretation"""
+    logger.info("Creating Data Analyst agent...")
+    return Agent(
+        role='Data Analyst',
+        goal='Generate clear and insightful analysis from SQL query results',
+        backstory="""You are a skilled data analyst who excels at interpreting data and communicating insights.
+        You have a talent for making complex data understandable and actionable.""",
+        llm=client,
+        verbose=True,
+        tools=[],
+    )
 
+async def multi_analyst(question: str, schema_info: Dict[str, Any], api_key: str) -> str:
+    """Analyze the question and generate SQL query based on schema information"""
     try:
-        Agent_csv = Agent(
-            role="Analista de Dados CSV",
-            goal="Efetuar análise de dados CSV para tomada de decisão",
-            backstory="Sou especialista em análise de arquivos CSV.",
-            tools=[],  # Nenhuma ferramenta externa, só LLM
-            llm=llm_excel,
+        logger.info(f"Starting SQL analysis for question: {question}")
+        
+        # Initialize OpenAI client if not already initialized
+        if api_key:
+            os.environ["OPENAI_API_KEY"] = api_key
+            logger.info("OpenAI client initialized")
+        
+        # Create SQL Analyst agent
+        sql_analyst = create_sql_analyst_agent()
+        
+        # Create task for SQL generation
+        logger.info("Creating SQL generation task...")
+
+        schema_description = "Estrutura do banco de dados:\n"
+        for table_name, info in schema_info.items():
+            schema_description += f"\nTabela: {table_name}\n"
+            schema_description += f"Colunas: {', '.join(info['columns'])}\n"
+
+        task_description = f"""
+            {schema_description}
+
+            Pergunta do usuário: {question}
+
+            Contexto: Você é um especialista em SQL com profundo conhecimento em SQLite. 
+            Sua tarefa é gerar uma consulta SQL otimizada e precisa.
+
+            Objetivo: Gerar uma consulta SQL que responda à pergunta do usuário utilizando 
+            apenas as tabelas e colunas disponíveis no schema fornecido.
+
+            Restrições e Requisitos:
+            1. Sintaxe e Formatação:
+            - Use aspas duplas para nomes de tabelas e colunas
+            - Retorne a consulta em uma única linha
+            - Não inclua explicações ou comentários
+
+            2. Compatibilidade:
+            - Garanta compatibilidade total com SQLite
+            - Use apenas tabelas e colunas do schema fornecido
+
+            3. Otimização:
+            - Otimize a consulta para melhor performance
+            - Use aliases apropriados para legibilidade
+            - Analise as relações entre tabelas e colunas
+
+            Sempre que possível, traga colunas adicionais que ajudem a identificar melhor o resultado. Por exemplo:
+            - Razão social do emitente
+            - Nome do destinatário
+            - Data de emissão
+            - UF de origem e destino
+            - Natureza da operação
+            - Valor da nota ou dos itens
+            - Descrição do(s) produto(s)
+
+            Formato de Resposta: Retorne APENAS a consulta SQL, sem texto adicional.
+        """
+        sql_task = Task(
+            description=task_description,
+            agent=sql_analyst,
             verbose=True,
-            memory=memory,
+            expected_output="Uma consulta SQL válida",
         )
-
-        arquivos = ', '.join(list(data.keys()))
-        colunas_info = ""
-        contagens = ""
-        dados_json = ""
-
-        # Inclui todas as colunas, contagem e TODOS os dados em JSON (atenção ao tamanho!)
-        for nome, linhas in data.items():
-            df = pd.DataFrame(linhas)
-            colunas_info += f"\nArquivo: {nome}\nColunas: {list(df.columns)}"
-            contagens += f"\nO arquivo {nome} possui {df.shape[0]} linhas."
-            # Envia todos os dados do arquivo em JSON
-            dados_json += f"\nArquivo: {nome}\nDados completos (JSON):\n{json.dumps(linhas, ensure_ascii=False)}\n"
-
-        descricao_dados = (
-            f"Você recebeu os seguintes arquivos CSV: {arquivos}.\n"
-            f"{colunas_info}\n"
-            f"{contagens}\n"
-            f"{dados_json}\n"
-            f"Pergunta do usuário: {question}\n"
-            "Utilize os dados completos fornecidos acima para responder de forma clara, objetiva e quantitativa sempre que possível. "
-            "Se a pergunta envolver busca, contagem, soma, média, cruzamento de informações entre arquivos ou outras operações, utilize os dados completos fornecidos. "
-            "Se não for possível responder com os dados apresentados, explique o motivo."
-        )
-
-        excel_Task = Task(
-            description=descricao_dados,
-            expected_output="retorne a análise de dados para tomada de decisão",
-            agent=Agent_csv,
-            memory=memory,
-        )
-
+        
+        # Create and run the crew
+        logger.info("Creating and running SQL analysis crew...")
         crew = Crew(
-            agents=[Agent_csv],
-            tasks=[excel_Task],
+            agents=[sql_analyst],
+            tasks=[sql_task],
             process=Process.sequential,
             verbose=True,
-            max_iterations=1,
-            memory=True,
-            entity_memory=memory,
         )
-
+        
+        logger.info("Executing SQL analysis task...")
         result = await crew.kickoff_async()
-        return result  # Retorna o resultado da análise
-    finally:
-        pass  # Não há excel_tools para parar
+        sql_query = result.raw
+        
+        # Log the generated SQL query
+        logger.info("Generated SQL Query:")
+        logger.info("-" * 80)
+        logger.info(sql_query)
+        logger.info("-" * 80)
+        
+        return sql_query
+        
+    except Exception as e:
+        error_msg = f"Error in multi_analyst: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
 
+async def generate_answer(question: str, sql: str, results: List[Dict[str, Any]], api_key: str) -> str:
+    """Generate a natural language answer based on SQL results"""
+    try:
+        logger.info(f"Starting answer generation for question: {question}")
+        
+        if api_key:
+            os.environ["OPENAI_API_KEY"] = api_key
+            logger.info("OpenAI client initialized")
+
+        # Create Data Analyst agent
+        data_analyst = create_data_analyst_agent()
+        
+        # Create task for answer generation
+        logger.info("Creating answer generation task...")
+        analysis_task = Task(
+            description=f"""Analise os dados e forneça uma resposta simples em português.
+
+            Dados:
+            - Pergunta: {question}
+            - SQL: {sql}s
+            - Resultados: {json.dumps(results, indent=2)}
+
+            Retorne apenas uma resposta direta e objetiva.""",
+            agent=data_analyst,
+            verbose=True,
+            expected_output="Uma resposta simples em português",
+        )
+        
+        # Create and run the crew
+        logger.info("Creating and running answer generation crew...")
+        crew = Crew(
+            agents=[data_analyst],
+            tasks=[analysis_task],
+            process=Process.sequential,
+            verbose=True,
+        )
+        
+        logger.info("Executing answer generation task...")
+        result = await crew.kickoff_async()
+        answer = result.raw
+        
+        # Log the generated answer
+        logger.info("Generated Answer:")
+        logger.info("-" * 80)
+        logger.info(answer)
+        logger.info("-" * 80)
+        
+        return answer
+        
+    except Exception as e:
+        error_msg = f"Error in generate_answer: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+
+def main():
+    logger.info("Starting MCP server...")
+    
+    # Create MCP server
+    mcp = FastMCP("Analista de Excel 📊")
+    
+    # Register tools using decorators
+    @mcp.tool
+    async def multi_analyst_tool(question: str, schema_info: Dict[str, Any], api_key: str) -> str:
+        return await multi_analyst(question, schema_info, api_key)
+    
+    @mcp.tool
+    async def generate_answer_tool(question: str, sql: str, results: List[Dict[str, Any]], api_key: str) -> str:
+        return await generate_answer(question, sql, results, api_key)
+    
+    # Start server with SSE transport
+    logger.info("Starting server with SSE transport on port 8005...")
+    mcp.run(transport="sse", host="127.0.0.1", port=8005)
 
 if __name__ == "__main__":
-    mcp.run(transport="sse", host="127.0.0.1", port=8005)
+    main()

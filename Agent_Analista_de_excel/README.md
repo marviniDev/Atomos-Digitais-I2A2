@@ -23,6 +23,7 @@ A arquitetura do projeto integra um servidor MCP (Multi-Crew Protocol) para orqu
    ```sh
    git clone https://github.com/seu-usuario/Atomos-Digitais-I2A2.git
    cd Atomos-Digitais-I2A2
+   cd Agent_Analista_de_excel
    ```
 
 2. **Crie e ative um ambiente virtual:**
@@ -37,10 +38,7 @@ A arquitetura do projeto integra um servidor MCP (Multi-Crew Protocol) para orqu
    pip install -r requirements.txt
    ```
 
-4. **Configure as variáveis de ambiente:**
-   - Copie o arquivo `env.template` para `.env` e preencha as informações necessárias (por exemplo, chaves de API).
-
-5. **Execute o projeto:**
+4. **Execute o projeto:**
    ```sh
    python main.py
    ```
@@ -69,21 +67,7 @@ Agent_Analista_de_excel/
 - [CrewAI](https://github.com/joaomdmoura/crewAI)
 - [FastMCP](https://github.com/joaomdmoura/fastmcp)
 - [LangChain OpenAI](https://github.com/langchain-ai/langchain)
-- Pandas, dotenv, nest-asyncio, entre outras.
-
-## Equipe e Colaboradores
-
-| Nome              | E-mail (parcial)         |
-|-------------------|-------------------------|
-| Izabella          | izabellasirqueira12@... |
-| Richard           | richard.programmer.rgba@... |
-| Jansley           | jansley@...             |
-| Roger             | roger.ldr@...           |
-| Laiane            | laianesilvasousa03@...  |
-| Gabriel           | gabriel.bplant@...      |
-| Marcos Vinícius   | vinicius.uchoa2002@...  |
-| Helena Aparecida  | hlanza@...              |
-| Wellington        | wa_andrade@...          |
+- Pandas, nest-asyncio, entre outras.
 
 ## Licença
 
