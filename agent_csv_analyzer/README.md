@@ -1,10 +1,9 @@
-# Átomos Digitais I2A2
-
-<img src="https://github.com/user-attachments/assets/dee36576-8d9d-4c97-ba05-8d2e1b38275c" alt="Imagem do Grupo Átomos Digitais" width="400"/>
+# Agent csv Analyzer
+![image](https://github.com/user-attachments/assets/73071ae1-c1f1-4519-8a66-71d2703d9fd8)
 
 ## Descrição do Projeto
 
-O **Átomos Digitais I2A2** é uma solução inovadora para análise inteligente de arquivos CSV compactados em ZIP, utilizando inteligência artificial para facilitar a tomada de decisões baseada em dados. O sistema permite que usuários façam upload de múltiplos arquivos CSV, façam perguntas em linguagem natural e recebam respostas detalhadas, quantitativas e explicativas, tudo por meio de uma interface web intuitiva.
+O **Agent csv Analyzer** é uma solução inovadora para análise inteligente de arquivos CSV compactados em ZIP, utilizando inteligência artificial para facilitar a tomada de decisões baseada em dados. O sistema permite que usuários façam upload de múltiplos arquivos CSV, façam perguntas em linguagem natural e recebam respostas detalhadas, quantitativas e explicativas, tudo por meio de uma interface web intuitiva.
 
 A arquitetura do projeto integra um servidor MCP (Multi-Crew Protocol) para orquestração de agentes de IA, e um front-end desenvolvido em Streamlit, proporcionando uma experiência fluida e interativa. O backend utiliza modelos de linguagem natural para interpretar perguntas e analisar os dados enviados, retornando insights relevantes de forma automatizada.
 

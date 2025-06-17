@@ -20,6 +20,14 @@ Somos um grupo de estudos dedicado à realização de tarefas e desafios propost
 | Helena Aparecida  | hlanza@...              |
 | Wellington        | wa_andrade@...          |
 
+## Projetos do Grupo
+
+Confira alguns dos projetos desenvolvidos e publicados no GitHub:
+
+- [agent_csv_analyzer](https://github.com/marviniDev/Atomos-Digitais-I2A2/tree/main/agent_csv_analyzer): Agente para análise automatizada de arquivos CSV utilizando inteligência artificial.
+
+Sinta-se à vontade para explorar, contribuir e sugerir melhorias!
+
 ## Licença
 
 Este projeto está licenciado sob a Licença MIT.
