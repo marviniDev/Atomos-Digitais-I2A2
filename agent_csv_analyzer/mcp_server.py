@@ -5,13 +5,13 @@ import sys
 from typing import Any, Dict, List
 
 import pysqlite3
-from crewai import Agent, Task, Crew, Process
-from fastmcp import FastMCP
-from langchain_openai import ChatOpenAI
-
 # Substitui o módulo padrão sqlite3 por pysqlite3
 sys.modules["sqlite3"] = pysqlite3
 sys.modules["sqlite"] = pysqlite3
+
+from crewai import Agent, Task, Crew, Process
+from fastmcp import FastMCP
+from langchain_openai import ChatOpenAI
 
 # Configure logging
 logging.basicConfig(
