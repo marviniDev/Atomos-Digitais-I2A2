@@ -1,17 +1,48 @@
-import streamlit as st
-import pandas as pd
+import os
+import sys
+import atexit
+import socket
 import asyncio
-import uuid
+import datetime
 import tempfile
 import zipfile
-import os
-import nest_asyncio
-from fastmcp import Client
+import subprocess
+
+import pandas as pd
+import streamlit as st
+
 from typing import Dict, List, Any
-import datetime
+from fastmcp import Client
 from db_utils import DatabaseManager
 
-nest_asyncio.apply()
+# --- INÍCIO: Código para rodar o MCP como subprocesso ---
+MCP_PROCESS = None
+
+def is_port_in_use(port, host="127.0.0.1"):
+    """Verifica se a porta está ocupada."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex((host, port)) == 0
+
+def start_mcp_server():
+    global MCP_PROCESS
+    mcp_path = os.path.join(os.path.dirname(__file__), "mcp_server.py")
+    # Só inicia se a porta 8005 estiver livre
+    if not is_port_in_use(8005):
+        MCP_PROCESS = subprocess.Popen([sys.executable, mcp_path])
+
+def stop_mcp_server():
+    global MCP_PROCESS
+    if MCP_PROCESS and MCP_PROCESS.poll() is None:
+        MCP_PROCESS.terminate()
+        try:
+            MCP_PROCESS.wait(timeout=5)
+        except Exception:
+            MCP_PROCESS.kill()
+
+# Inicia MCP ao carregar o app
+start_mcp_server()
+atexit.register(stop_mcp_server)
+# --- FIM: Código para rodar o MCP como subprocesso ---
 
 # File Processor Class
 class FileProcessor:

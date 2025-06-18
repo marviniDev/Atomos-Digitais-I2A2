@@ -39,24 +39,22 @@ A arquitetura do projeto integra um servidor MCP (Multi-Crew Protocol) para orqu
 
 4. **Execute o projeto:**
    ```sh
-   python main.py
+   streamlit run src/app.py
    ```
    O sistema irá iniciar o servidor MCP e a interface Streamlit automaticamente.
 
 ## Estrutura do Projeto
 
 ```
+```plaintext
 agent_csv_analyzer/
 │
-├── main.py                # Orquestrador: inicia o servidor MCP e o app 
-├── requirements.txt       # Dependências do projeto
-├── pyproject.toml         # Configuração do projeto Python
-├── .env                   # Variáveis de ambiente (não versionado)
-├── src/
-│   ├── app.py             # Interface web (Streamlit)
-│   ├── mcp_server.py      # Servidor MCP e lógica dos agentes
-│   └── shema.py           # (Arquivo auxiliar)
-└── README.md
+├── requirements.txt    # Dependências do projeto
+├── pyproject.toml      # Configuração do projeto Python
+├── app.py              # Interface web (Streamlit)
+├── db_utils.py         # Utilitários para acesso ao banco de dados
+├── mcp_server.py       # Servidor MCP e lógica dos agentes
+└── README.md           # Documentação do projeto
 ```
 
 ## Tecnologias Utilizadas
@@ -66,7 +64,7 @@ agent_csv_analyzer/
 - [CrewAI](https://github.com/joaomdmoura/crewAI)
 - [FastMCP](https://github.com/joaomdmoura/fastmcp)
 - [LangChain OpenAI](https://github.com/langchain-ai/langchain)
-- Pandas, nest-asyncio, entre outras.
+- Pandas
 
 ## Licença
 
