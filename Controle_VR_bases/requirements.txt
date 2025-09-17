@@ -3,3 +3,9 @@ openpyxl==3.1.2
 streamlit==1.35.0
 openai==1.55.3
 python-dotenv==1.0.0
+
+# Dependências para banco de dados e MCP
+pysqlite3-binary==0.5.2
+fastmcp==0.1.0
+crewai==0.28.0
+langchain-openai==0.1.0

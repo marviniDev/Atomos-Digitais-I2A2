@@ -1,5 +1,5 @@
 """
-Agente VR Refatorado - Arquitetura Limpa e Organizada
+Agente VR Refatorado - Arquitetura Limpa e Organizada com Integração ao Banco de Dados
 """
 import os
 import sys
@@ -18,6 +18,7 @@ from validator import DataValidator
 from calculator import VRCalculator
 from ai_service import OpenAIService
 from report_generator import ExcelReportGenerator
+from database import VRDatabaseManager
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -25,29 +26,35 @@ logger = logging.getLogger(__name__)
 
 class VRAgentRefactored:
     """
-    Agente VR refatorado com arquitetura limpa e organizada
+    Agente VR refatorado com arquitetura limpa e integração ao banco de dados
     
     Responsabilidades:
     - Orquestrar o processamento completo de VR/VA
     - Coordenar os diferentes módulos
+    - Gerenciar banco de dados SQLite
     - Manter a interface simples para o usuário
     """
     
-    def __init__(self, openai_api_key: str):
+    def __init__(self, openai_api_key: str, db_path: Optional[str] = None):
         """
         Inicializa o agente refatorado
         
         Args:
             openai_api_key: Chave da API OpenAI (obrigatória)
+            db_path: Caminho do banco de dados SQLite (opcional)
         """
         # Validar configuração
         if not config.validate_config():
             raise ValueError("Configuração inválida")
         
-        # Inicializar módulos
-        self.data_loader = ExcelLoader()
+        # Inicializar banco de dados
+        self.db_manager = VRDatabaseManager(db_path)
+        self.db_manager.initialize(db_path)
+        
+        # Inicializar módulos com integração ao banco
+        self.data_loader = ExcelLoader(self.db_manager)
         self.validator = DataValidator()
-        self.calculator = VRCalculator()
+        self.calculator = VRCalculator(self.db_manager)
         self.report_generator = ExcelReportGenerator()
         
         # Validar API key obrigatória
@@ -62,7 +69,7 @@ class VRAgentRefactored:
             logger.error(f"❌ Erro ao inicializar IA: {e}")
             raise ValueError(f"Erro ao inicializar IA: {e}")
     
-    def process_vr_complete(self, ano: int, mes: int, nome_saida: str = None) -> Dict:
+    def process_vr_complete(self, ano: int, mes: int, nome_saida: str = None, use_database: bool = True) -> Dict:
         """
         Processa completamente o VR conforme todos os requisitos
         
@@ -70,6 +77,7 @@ class VRAgentRefactored:
             ano: Ano de referência
             mes: Mês de referência
             nome_saida: Nome do arquivo de saída (opcional)
+            use_database: Se True, usa dados do banco de dados
             
         Returns:
             Dict: Resultado do processamento
@@ -79,7 +87,7 @@ class VRAgentRefactored:
         try:
             # 1. Carregar planilhas
             logger.info("📁 Carregando planilhas...")
-            spreadsheets = self.data_loader.load_all_spreadsheets()
+            spreadsheets = self.data_loader.load_all_spreadsheets(load_to_db=use_database)
             
             # 2. Validar planilhas obrigatórias
             missing_files = self.data_loader.validate_required_files(spreadsheets)
@@ -102,15 +110,25 @@ class VRAgentRefactored:
             # 5. Aplicar exclusões
             logger.info("🚫 Aplicando exclusões...")
             df_base = spreadsheets["ativos"].copy()
-            df_elegiveis, exclusoes_aplicadas = self.calculator.apply_exclusions(df_base, spreadsheets)
+            
+            if use_database and self.db_manager:
+                df_elegiveis, exclusoes_aplicadas = self.calculator.apply_exclusions_from_db(df_base)
+            else:
+                df_elegiveis, exclusoes_aplicadas = self.calculator.apply_exclusions(df_base, spreadsheets)
             
             # 6. Calcular dias úteis
             logger.info("📊 Calculando dias úteis...")
-            df_com_dias = self.calculator.calculate_working_days(df_elegiveis, spreadsheets, ano, mes)
+            if use_database and self.db_manager:
+                df_com_dias = self.calculator.calculate_working_days_from_db(df_elegiveis, ano, mes)
+            else:
+                df_com_dias = self.calculator.calculate_working_days(df_elegiveis, spreadsheets, ano, mes)
             
             # 7. Calcular valores de VR
             logger.info("💰 Calculando valores de VR...")
-            df_final = self.calculator.calculate_vr_values(df_com_dias, spreadsheets)
+            if use_database and self.db_manager:
+                df_final = self.calculator.calculate_vr_values_from_db(df_com_dias)
+            else:
+                df_final = self.calculator.calculate_vr_values(df_com_dias, spreadsheets)
             
             # 8. Gerar resumos
             logger.info("📈 Gerando resumos...")
@@ -146,8 +164,15 @@ class VRAgentRefactored:
                 "problemas_encontrados": len(problemas),
                 "insights_ia": insights_ia,
                 "resumo_sindicatos": df_resumo.to_dict('records'),
-                "validacao_summary": validation_summary
+                "validacao_summary": validation_summary,
+                "ano": ano,
+                "mes": mes,
+                "use_database": use_database
             }
+            
+            # 12. Salvar resultado no banco
+            if use_database and self.db_manager:
+                self.db_manager.save_processing_result(resultado)
             
             logger.info("✅ Processamento completo concluído com sucesso!")
             return resultado
@@ -174,7 +199,7 @@ class VRAgentRefactored:
             # Carregar dados atuais se disponível
             spreadsheets = {}
             if config.get_data_path().exists():
-                spreadsheets = self.data_loader.load_all_spreadsheets()
+                spreadsheets = self.data_loader.load_all_spreadsheets(load_to_db=False)
             
             # Preparar dados de contexto
             context_data = {}
@@ -195,6 +220,48 @@ class VRAgentRefactored:
         except Exception as e:
             logger.error(f"Erro na consulta IA: {e}")
             return f"Erro ao consultar dados: {e}"
+    
+    def consult_ai_with_database(self, pergunta: str) -> str:
+        """
+        Permite fazer consultas diretas à IA usando dados do banco de dados
+        
+        Args:
+            pergunta: Pergunta do usuário
+            
+        Returns:
+            str: Resposta da IA
+        """
+        try:
+            if not self.db_manager:
+                return "❌ Banco de dados não disponível para consultas"
+            
+            # Obter schema do banco
+            schema_info = self.db_manager.get_schema_info()
+            
+            # Preparar contexto com dados do banco
+            context_data = {}
+            for table_name, info in schema_info.items():
+                # Obter contagem de registros
+                count_query = f"SELECT COUNT(*) as total FROM {table_name}"
+                count_result = self.db_manager.execute_query(count_query)
+                total_records = count_result[0]['total'] if count_result else 0
+                
+                context_data[table_name] = {
+                    "linhas": total_records,
+                    "colunas": info['columns'],
+                    "tipos": info['types']
+                }
+            
+            # Se IA disponível, usar IA
+            if self.ai_service:
+                return self.ai_service.consult_ai(pergunta, context_data)
+            
+            # Se IA não disponível, usar análise local
+            return self._analyze_data_locally(pergunta, context_data)
+            
+        except Exception as e:
+            logger.error(f"Erro na consulta IA com banco: {e}")
+            return f"Erro ao consultar dados do banco: {e}"
     
     def _analyze_data_locally(self, pergunta: str, context_data: Dict) -> str:
         """
@@ -275,7 +342,10 @@ class VRAgentRefactored:
         
         # Análise de funcionários (verificar por último para evitar conflitos)
         elif any(palavra in pergunta_lower for palavra in ['funcionario', 'funcionários', 'colaborador', 'colaboradores', 'pessoas', 'existem']):
-            if 'ativos' in context_data:
+            if 'funcionarios_ativos' in context_data:
+                total_ativos = context_data['funcionarios_ativos']['linhas']
+                return f"📊 **Total de funcionários ativos:** {total_ativos:,}\n\n💡 *Análise baseada nos dados carregados da planilha Ativos.xlsx*"
+            elif 'ativos' in context_data:
                 total_ativos = context_data['ativos']['linhas']
                 return f"📊 **Total de funcionários ativos:** {total_ativos:,}\n\n💡 *Análise baseada nos dados carregados da planilha Ativos.xlsx*"
             else:
@@ -298,7 +368,7 @@ class VRAgentRefactored:
             for nome, dados in context_data.items():
                 if dados['linhas'] > 0:
                     resumo += f"• {nome.title()}: {dados['linhas']:,} registros\n"
-            resumo += "\n�� *Para análise mais avançada, configure a chave da API OpenAI*"
+            resumo += "\n💡 *Para análise mais avançada, configure a chave da API OpenAI*"
             return resumo
     
     def get_system_status(self) -> Dict:
@@ -308,6 +378,28 @@ class VRAgentRefactored:
         Returns:
             Dict: Status do sistema
         """
+        db_status = {}
+        if self.db_manager:
+            try:
+                schema_info = self.db_manager.get_schema_info()
+                db_status = {
+                    "database_available": True,
+                    "database_tables": len(schema_info),
+                    "database_connected": True
+                }
+            except:
+                db_status = {
+                    "database_available": False,
+                    "database_tables": 0,
+                    "database_connected": False
+                }
+        else:
+            db_status = {
+                "database_available": False,
+                "database_tables": 0,
+                "database_connected": False
+            }
+        
         return {
             "config_valid": config.validate_config(),
             "ai_available": self.ai_service is not None,
@@ -316,8 +408,41 @@ class VRAgentRefactored:
             "required_files": config.required_files,
             "excluded_positions": config.excluded_positions,
             "company_percentage": config.company_percentage,
-            "employee_percentage": config.employee_percentage
+            "employee_percentage": config.employee_percentage,
+            **db_status
         }
+    
+    def get_processing_history(self) -> List[Dict]:
+        """
+        Obtém histórico de processamentos do banco de dados
+        
+        Returns:
+            List[Dict]: Lista de processamentos realizados
+        """
+        if not self.db_manager:
+            return []
+        
+        try:
+            return self.db_manager.get_processing_history()
+        except Exception as e:
+            logger.error(f"Erro ao obter histórico: {e}")
+            return []
+    
+    def export_database(self) -> bytes:
+        """
+        Exporta o banco de dados para bytes
+        
+        Returns:
+            bytes: Dados do banco de dados
+        """
+        if not self.db_manager:
+            return None
+        
+        try:
+            return self.db_manager.export_database()
+        except Exception as e:
+            logger.error(f"Erro ao exportar banco: {e}")
+            return None
 
 
 def main():
@@ -331,7 +456,15 @@ def main():
             print("❌ API Key é obrigatória!")
             return
         
-        agente = VRAgentRefactored(api_key)
+        # Perguntar sobre banco de dados
+        use_db = input("🗄️ Usar banco de dados SQLite? (s/n): ").strip().lower() == 's'
+        db_path = None
+        if use_db:
+            db_path = input("📁 Caminho do banco (Enter para usar memória): ").strip()
+            if not db_path:
+                db_path = None
+        
+        agente = VRAgentRefactored(api_key, db_path)
         
         # Mostrar status do sistema
         status = agente.get_system_status()
@@ -362,7 +495,7 @@ def main():
                 if mes_texto and ano:
                     mes = meses[mes_texto]
                     ano = int(ano)
-                    resultado = agente.process_vr_complete(ano, mes)
+                    resultado = agente.process_vr_complete(ano, mes, use_database=use_db)
                     
                     if resultado["sucesso"]:
                         print(f"✅ Processamento completo concluído!")
@@ -373,6 +506,7 @@ def main():
                         print(f"🏢 Total Empresa (80%): R$ {resultado['total_empresa']:,.2f}")
                         print(f"👤 Total Colaborador (20%): R$ {resultado['total_colaborador']:,.2f}")
                         print(f"⚠️ Problemas encontrados: {resultado['problemas_encontrados']}")
+                        print(f"🗄️ Usou banco de dados: {resultado.get('use_database', False)}")
                     else:
                         print(f"❌ Erro: {resultado['erro']}")
                 else:
@@ -380,7 +514,10 @@ def main():
             
             elif 'consultar' in comando.lower():
                 pergunta = comando.replace('consultar', '').strip()
-                resposta = agente.consult_ai(pergunta)
+                if use_db:
+                    resposta = agente.consult_ai_with_database(pergunta)
+                else:
+                    resposta = agente.consult_ai(pergunta)
                 print(f"🤖 IA: {resposta}")
             
             else:

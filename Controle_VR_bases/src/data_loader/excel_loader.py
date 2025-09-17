@@ -1,25 +1,30 @@
 """
-Módulo para carregamento de planilhas Excel
+Módulo para carregamento de planilhas Excel com integração ao banco de dados
 """
 import pandas as pd
 import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 from config import config
+from database import VRDatabaseManager
 
 logger = logging.getLogger(__name__)
 
 class ExcelLoader:
-    """Classe responsável por carregar planilhas Excel"""
+    """Classe responsável por carregar planilhas Excel e integrar com banco de dados"""
     
-    def __init__(self):
+    def __init__(self, db_manager: Optional[VRDatabaseManager] = None):
         self.data_folder = config.get_data_path()
         self.file_mapping = config.file_mapping
+        self.db_manager = db_manager
     
-    def load_all_spreadsheets(self) -> Dict[str, pd.DataFrame]:
+    def load_all_spreadsheets(self, load_to_db: bool = True) -> Dict[str, pd.DataFrame]:
         """
-        Carrega todas as planilhas da pasta de dados
+        Carrega todas as planilhas da pasta de dados e opcionalmente salva no banco
         
+        Args:
+            load_to_db: Se True, carrega os dados para o banco de dados
+            
         Returns:
             Dict[str, pd.DataFrame]: Dicionário com nome da planilha e DataFrame
         """
@@ -49,6 +54,16 @@ class ExcelLoader:
                     
             except Exception as e:
                 logger.error(f"❌ Erro ao carregar {file_path.name}: {e}")
+        
+        # Carregar dados para o banco se solicitado e disponível
+        if load_to_db and self.db_manager:
+            try:
+                logger.info("Carregando dados para o banco de dados...")
+                self.db_manager.load_spreadsheet_data(spreadsheets)
+                logger.info("✅ Dados carregados no banco de dados com sucesso")
+            except Exception as e:
+                logger.error(f"❌ Erro ao carregar dados no banco: {e}")
+                raise
         
         return spreadsheets
     
@@ -112,3 +127,24 @@ class ExcelLoader:
             "has_data": len(df) > 0,
             "sample_data": df.head(3).to_dict('records') if len(df) > 0 else []
         }
+    
+    def get_database_info(self) -> Optional[Dict]:
+        """
+        Obtém informações do banco de dados se disponível
+        
+        Returns:
+            Dict: Informações do banco de dados ou None se não disponível
+        """
+        if not self.db_manager:
+            return None
+        
+        try:
+            schema_info = self.db_manager.get_schema_info()
+            return {
+                "tables": list(schema_info.keys()),
+                "schema": schema_info,
+                "total_tables": len(schema_info)
+            }
+        except Exception as e:
+            logger.error(f"Erro ao obter informações do banco: {e}")
+            return None
