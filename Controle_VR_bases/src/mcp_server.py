@@ -71,6 +71,7 @@ async def multi_analyst(question: str, schema_info: Dict[str, Any], api_key: str
         # Initialize OpenAI client if not already initialized
         if api_key:
             os.environ["OPENAI_API_KEY"] = api_key
+            initialize_openai(api_key)
             logger.info("OpenAI client initialized")
         
         # Create SQL Analyst agent
@@ -168,6 +169,7 @@ async def generate_answer(question: str, sql: str, results: List[Dict[str, Any]]
         
         if api_key:
             os.environ["OPENAI_API_KEY"] = api_key
+            initialize_openai(api_key)
             logger.info("OpenAI client initialized")
 
         # Create Data Analyst agent
@@ -226,19 +228,25 @@ def main():
     logger.info("Starting VR MCP server...")
     
     # Create MCP server
-    mcp = FastMCP("Analista de VR/VA 🏢")
+    mcp = FastMCP("Analista de VR/VA 🏢✨")
     
-    # Register tools using decorators
+    # Register tools
     @mcp.tool
     async def multi_analyst_tool(question: str, schema_info: Dict[str, Any], api_key: str) -> str:
+        """Analyze questions and generate SQL queries for VR data"""
         return await multi_analyst(question, schema_info, api_key)
     
     @mcp.tool
     async def generate_answer_tool(question: str, sql: str, results: List[Dict[str, Any]], api_key: str) -> str:
+        """Generate natural language answers from SQL results"""
         return await generate_answer(question, sql, results, api_key)
     
     # Start server with SSE transport
     logger.info("Starting server with SSE transport on port 8006...")
+    logger.info("Available tools:")
+    logger.info("- multi_analyst_tool: SQL query generation")
+    logger.info("- generate_answer_tool: Natural language answers")
+    
     mcp.run(transport="sse", host="127.0.0.1", port=8006)
 
 # Executa o servidor MCP
