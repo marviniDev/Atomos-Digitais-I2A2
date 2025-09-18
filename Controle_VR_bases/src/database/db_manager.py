@@ -20,8 +20,12 @@ class VRDatabaseManager:
         Inicializa o gerenciador do banco de dados
         
         Args:
-            db_path: Caminho do arquivo de banco (None para banco em memória)
+            db_path: Caminho do arquivo de banco (None para banco em arquivo padrão)
         """
+        # Usar arquivo padrão se não especificado
+        if db_path is None:
+            db_path = "data/vr_database.db"
+        
         self.db_path = db_path
         self.conn = None
         self.cursor = None
@@ -32,18 +36,19 @@ class VRDatabaseManager:
         Inicializa o banco de dados
         
         Args:
-            db_path: Caminho do arquivo de banco (None para banco em memória)
+            db_path: Caminho do arquivo de banco (None para banco em arquivo padrão)
             
         Returns:
             VRDatabaseManager: Instância do gerenciador
         """
-        if db_path:
-            self.db_path = db_path
-            # Criar diretório se não existir
-            Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-            self._local.conn = sqlite3.connect(db_path)
-        else:
-            self._local.conn = sqlite3.connect(':memory:')
+        # Usar arquivo padrão se não especificado
+        if db_path is None:
+            db_path = self.db_path
+        
+        self.db_path = db_path
+        # Criar diretório se não existir
+        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        self._local.conn = sqlite3.connect(db_path)
         
         self._local.cursor = self._local.conn.cursor()
         self.conn = self._local.conn
@@ -58,10 +63,8 @@ class VRDatabaseManager:
     def _get_connection(self):
         """Obtém a conexão para a thread atual"""
         if not hasattr(self._local, 'conn'):
-            if self.db_path:
-                self._local.conn = sqlite3.connect(self.db_path)
-            else:
-                self._local.conn = sqlite3.connect(':memory:')
+            # Sempre usar arquivo, nunca memória
+            self._local.conn = sqlite3.connect(self.db_path)
             self._local.cursor = self._local.conn.cursor()
         return self._local.conn, self._local.cursor
     

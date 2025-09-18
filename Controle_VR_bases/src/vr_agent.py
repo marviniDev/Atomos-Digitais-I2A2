@@ -68,6 +68,37 @@ class VRAgentRefactored:
         except Exception as e:
             logger.error(f"❌ Erro ao inicializar IA: {e}")
             raise ValueError(f"Erro ao inicializar IA: {e}")
+        
+        # Carregar dados automaticamente após inicialização
+        try:
+            logger.info("📁 Carregando dados automaticamente...")
+            self._load_data_automatically()
+            logger.info("✅ Dados carregados automaticamente com sucesso")
+        except Exception as e:
+            logger.warning(f"⚠️ Aviso: Não foi possível carregar dados automaticamente: {e}")
+            logger.info("💡 Os dados serão carregados quando necessário")
+    
+    def _load_data_automatically(self) -> None:
+        """
+        Carrega dados automaticamente na inicialização
+        
+        Raises:
+            Exception: Se houver erro no carregamento
+        """
+        try:
+            # Carregar planilhas
+            spreadsheets = self.data_loader.load_all_spreadsheets(load_to_db=True)
+            
+            # Validar planilhas obrigatórias
+            missing_files = self.data_loader.validate_required_files(spreadsheets)
+            if missing_files:
+                raise ValueError(f"Planilhas obrigatórias ausentes: {missing_files}")
+            
+            logger.info(f"✅ {len(spreadsheets)} planilhas carregadas automaticamente")
+            
+        except Exception as e:
+            logger.error(f"❌ Erro no carregamento automático: {e}")
+            raise
     
     def process_vr_complete(self, ano: int, mes: int, nome_saida: str = None, use_database: bool = True) -> Dict:
         """
@@ -85,14 +116,10 @@ class VRAgentRefactored:
         logger.info(f"🚀 Iniciando processamento completo de VR para {mes}/{ano}...")
         
         try:
-            # 1. Carregar planilhas
-            logger.info("📁 Carregando planilhas...")
-            spreadsheets = self.data_loader.load_all_spreadsheets(load_to_db=use_database)
-            
-            # 2. Validar planilhas obrigatórias
-            missing_files = self.data_loader.validate_required_files(spreadsheets)
-            if missing_files:
-                raise ValueError(f"Planilhas obrigatórias ausentes: {missing_files}")
+            # 1. Carregar dados para validação (banco já carregado)
+            logger.info("📁 Dados já carregados automaticamente, usando banco de dados...")
+            # Carregar dados para validação (sem salvar no banco)
+            spreadsheets = self.data_loader.load_all_spreadsheets(load_to_db=False)
             
             # 3. Validar estrutura e qualidade dos dados
             logger.info("🔍 Validando dados...")
@@ -110,25 +137,15 @@ class VRAgentRefactored:
             # 5. Aplicar exclusões
             logger.info("🚫 Aplicando exclusões...")
             df_base = spreadsheets["ativos"].copy()
-            
-            if use_database and self.db_manager:
-                df_elegiveis, exclusoes_aplicadas = self.calculator.apply_exclusions_from_db(df_base)
-            else:
-                df_elegiveis, exclusoes_aplicadas = self.calculator.apply_exclusions(df_base, spreadsheets)
+            df_elegiveis, exclusoes_aplicadas = self.calculator.apply_exclusions_from_db(df_base)
             
             # 6. Calcular dias úteis
             logger.info("📊 Calculando dias úteis...")
-            if use_database and self.db_manager:
-                df_com_dias = self.calculator.calculate_working_days_from_db(df_elegiveis, ano, mes)
-            else:
-                df_com_dias = self.calculator.calculate_working_days(df_elegiveis, spreadsheets, ano, mes)
+            df_com_dias = self.calculator.calculate_working_days_from_db(df_elegiveis, ano, mes)
             
             # 7. Calcular valores de VR
             logger.info("💰 Calculando valores de VR...")
-            if use_database and self.db_manager:
-                df_final = self.calculator.calculate_vr_values_from_db(df_com_dias)
-            else:
-                df_final = self.calculator.calculate_vr_values(df_com_dias, spreadsheets)
+            df_final = self.calculator.calculate_vr_values_from_db(df_com_dias)
             
             # 8. Gerar resumos
             logger.info("📈 Gerando resumos...")
