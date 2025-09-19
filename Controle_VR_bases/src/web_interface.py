@@ -23,93 +23,93 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS personalizado para interface corporativa
+# CSS personalizado para interface limpa
 st.markdown("""
 <style>
     /* Reset e configurações base */
     .main .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-        max-width: 1200px;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        max-width: 1400px;
     }
     
-    /* Header principal */
+    /* Header principal - mais compacto */
     .corporate-header {
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        padding: 2.5rem 2rem;
-        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        border-radius: 8px;
         color: white;
         text-align: center;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     
     .corporate-header h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.3);
     }
     
     .corporate-header p {
-        font-size: 1.1rem;
+        font-size: 0.9rem;
         opacity: 0.9;
         margin: 0;
     }
     
-    /* Cards de métricas */
+    /* Cards de métricas - mais limpos */
     .metric-card {
         background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        border-left: 4px solid #2a5298;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        margin: 0.5rem 0;
+        padding: 1.2rem;
+        border-radius: 8px;
+        border-left: 3px solid #2a5298;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+        margin: 0.3rem 0;
         transition: transform 0.2s ease;
     }
     
     .metric-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        transform: translateY(-1px);
+        box-shadow: 0 3px 12px rgba(0,0,0,0.1);
     }
     
     .metric-value {
-        font-size: 2rem;
-        font-weight: 700;
+        font-size: 1.6rem;
+        font-weight: 600;
         color: #2a5298;
         margin: 0;
     }
     
     .metric-label {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         color: #666;
         margin: 0;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
     }
     
     /* Status cards */
     .status-success {
         background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-        border-left: 4px solid #28a745;
+        border-left: 3px solid #28a745;
         color: #155724;
     }
     
     .status-warning {
         background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-        border-left: 4px solid #ffc107;
+        border-left: 3px solid #ffc107;
         color: #856404;
     }
     
     .status-error {
         background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-        border-left: 4px solid #dc3545;
+        border-left: 3px solid #dc3545;
         color: #721c24;
     }
     
     .status-info {
         background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
-        border-left: 4px solid #17a2b8;
+        border-left: 3px solid #17a2b8;
         color: #0c5460;
     }
     
@@ -118,16 +118,16 @@ st.markdown("""
         background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
         color: white;
         border: none;
-        border-radius: 8px;
-        padding: 0.5rem 1.5rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 8px rgba(42, 82, 152, 0.3);
+        border-radius: 6px;
+        padding: 0.4rem 1.2rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 4px rgba(42, 82, 152, 0.3);
     }
     
     .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(42, 82, 152, 0.4);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(42, 82, 152, 0.4);
     }
     
     /* Sidebar personalizada */
@@ -137,9 +137,9 @@ st.markdown("""
     
     /* Tabelas personalizadas */
     .dataframe {
-        border-radius: 8px;
+        border-radius: 6px;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     }
     
     /* Progress bar personalizada */
@@ -149,10 +149,10 @@ st.markdown("""
     
     /* Alertas personalizados */
     .alert-box {
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        margin: 1rem 0;
-        border-left: 4px solid;
+        padding: 0.8rem 1.2rem;
+        border-radius: 6px;
+        margin: 0.8rem 0;
+        border-left: 3px solid;
     }
     
     .alert-success {
@@ -183,19 +183,24 @@ st.markdown("""
     .corporate-footer {
         text-align: center;
         color: #666;
-        padding: 2rem 0;
+        padding: 1.5rem 0;
         border-top: 1px solid #e9ecef;
-        margin-top: 3rem;
+        margin-top: 2rem;
     }
     
     /* Gráficos simples */
     .chart-container {
         background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        margin: 1rem 0;
+        padding: 1.2rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+        margin: 0.8rem 0;
     }
+    
+    /* Esconder elementos desnecessários */
+    .stDeployButton {display:none;}
+    footer {visibility: hidden;}
+    .stApp > header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -210,7 +215,7 @@ if 'resultado_processamento' not in st.session_state:
 def main():
     """Função principal da interface"""
     
-    # Header corporativo
+    # Header corporativo compacto
     render_header()
     
     # Sidebar com configurações
@@ -226,7 +231,7 @@ def main():
     render_footer()
 
 def render_header():
-    """Renderiza o header principal"""
+    """Renderiza o header principal compacto"""
     st.markdown("""
     <div class="corporate-header">
         <h1>🏢 Sistema VR/VA</h1>
@@ -237,7 +242,7 @@ def render_header():
 def render_sidebar():
     """Renderiza a sidebar com configurações"""
     with st.sidebar:
-        st.markdown("## ⚙️ Configurações do Sistema")
+        st.markdown("## ⚙️ Configurações")
         
         # Configuração da API OpenAI
         st.markdown("### 🔑 Autenticação")
@@ -254,7 +259,7 @@ def render_sidebar():
                     st.session_state.agente = VRAgentRefactored(api_key)
                     st.session_state.agente.api_key = api_key
                 
-                st.success("✅ Sistema autenticado com sucesso!")
+                st.success("✅ Sistema autenticado!")
                 
                 # Status do sistema
                 render_system_status()
@@ -268,8 +273,7 @@ def render_sidebar():
         
         st.divider()
         
-        # Informações do sistema
-        render_system_info()
+        # Informações do projeto removidas - agora na tela inicial
 
 def render_system_status():
     """Renderiza o status do sistema"""
@@ -278,77 +282,60 @@ def render_system_status():
     try:
         status = st.session_state.agente.get_system_status()
         
-        for key, value in status.items():
-            if isinstance(value, bool):
-                icon = "✅" if value else "❌"
-                st.write(f"{icon} **{key.replace('_', ' ').title()}**")
-            else:
-                st.write(f"📋 **{key.replace('_', ' ').title()}**: {value}")
+        # Mostrar apenas informações essenciais
+        essential_status = {
+            'Banco de Dados': '✅ Conectado' if status.get('database_connected') else '❌ Desconectado',
+            'IA Disponível': '✅ Ativa' if status.get('ai_available') else '❌ Inativa',
+            'Planilhas': f"{status.get('database_tables', 0)} tabelas carregadas"
+        }
+        
+        for key, value in essential_status.items():
+            st.write(f"**{key}**: {value}")
                 
     except Exception as e:
         st.error(f"Erro ao verificar status: {e}")
 
-def render_system_info():
-    """Renderiza informações sobre o sistema"""
-    st.markdown("### 🏗️ Arquitetura")
+def render_project_info():
+    """Renderiza informações sobre o projeto"""
+    st.markdown("### 📋 Sobre o Sistema")
     st.info("""
-    **Módulos do Sistema:**
-    - �� **Config**: Configurações centralizadas
-    - 📊 **Data Loader**: Carregamento de planilhas
-    - ✅ **Validator**: Validação de dados
-    - �� **Calculator**: Cálculos de VR
-    - 🤖 **AI Service**: Serviços de IA
-    - 📋 **Report Generator**: Geração de relatórios
-    """)
+    **Automação VR/VA:**
     
-    st.markdown("### 📋 Planilhas Suportadas")
-    st.info("""
-    **Obrigatórias:**
-    - Ativos.xlsx
-    - Dias_Uteis.xlsx
-    - Sindicatos.xlsx
-    
-    **Opcionais:**
-    - Afastados.xlsx
-    - Ferias.xlsx
-    - Desligados.xlsx
-    - Admissoes.xlsx
-    - Estagio.xlsx
-    - Aprendiz.xlsx
-    - Exterior.xlsx
+    • Processamento automático de Vale Refeição
+    • Consolidação de múltiplas planilhas
+    • Validação inteligente de dados
+    • Cálculos baseados em regras de negócio
+    • Geração de relatórios para operadora
+    • Análise com Inteligência Artificial
     """)
 
 def render_welcome_screen():
     """Renderiza a tela de boas-vindas"""
-    col1, col2, col3 = st.columns([1, 2, 1])
+
+    st.markdown("""
+    <div class="alert-info alert-box">
+        <h3>👋 Bem-vindo ao Sistema VR/VA</h3>
+        <p>Configure sua chave da API OpenAI na barra lateral para começar a usar o sistema.</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    with col2:
-        st.markdown("""
-        <div class="alert-info alert-box">
-            <h3>�� Bem-vindo ao Sistema VR/VA</h3>
-            <p>Configure sua chave da API OpenAI na barra lateral para começar a usar o sistema.</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("### 🚀 Funcionalidades Principais")
-        
-        features = [
-            ("📊 Consolidação de Dados", "Reúne múltiplas planilhas em uma base única"),
-            ("✅ Validação Automática", "Detecta inconsistências e problemas nos dados"),
-            ("🧮 Cálculos Inteligentes", "Aplica regras de negócio automaticamente"),
-            ("🤖 Análise com IA", "Insights e sugestões usando OpenAI"),
-            ("📋 Relatórios Completos", "Gera planilhas prontas para operadora"),
-            ("📈 Dashboards Interativos", "Visualizações e métricas em tempo real")
-        ]
-        
-        for icon_title, description in features:
-            st.markdown(f"**{icon_title}** - {description}")
+    st.markdown("### 🚀 Funcionalidades Principais")
+    
+    features = [
+        ("📈 Dashboards Interativos", "Visualizações e métricas em tempo real"),
+        ("📋 Relatórios Completos", "Gera planilhas prontas para operadora"),
+        ("🤖 Análise com IA", "Insights e sugestões usando OpenAI"),
+        ("✅ Validação Automática", "Detecta inconsistências e problemas nos dados")
+    ]
+    
+    for icon_title, description in features:
+        st.markdown(f"**{icon_title}** - {description}")
 
 def render_main_content():
     """Renderiza o conteúdo principal"""
     
     # Tabs principais
-    tab1, tab2, tab3, tab4 = st.tabs(["�� Dashboard", "⚙️ Processamento", "�� Relatórios", "�� Consultas IA"])
+    tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "⚙️ Processamento", "🤖 Consultar IA"])
     
     with tab1:
         render_dashboard()
@@ -357,24 +344,58 @@ def render_main_content():
         render_processing()
     
     with tab3:
-        render_reports()
-    
-    with tab4:
         render_ai_queries()
 
 def render_dashboard():
     """Renderiza o dashboard principal"""
-    st.markdown("## 📊 Dashboard Executivo")
+    st.markdown("## �� Dashboard Executivo")
     
-    # Métricas principais (se houver resultado de processamento)
-    if st.session_state.resultado_processamento:
+    # Verificar se processamento foi concluído
+    if st.session_state.resultado_processamento and st.session_state.resultado_processamento.get('sucesso'):
+        st.success('🎉 Dados carregados com sucesso!')
+        
+        # Debug: mostrar informações básicas
+        resultado = st.session_state.resultado_processamento
+        st.write(f"**Arquivo gerado:** {resultado.get('arquivo_saida', 'N/A')}")
+        st.write(f"**Total funcionários:** {resultado.get('total_funcionarios_final', 0)}")
+        
         render_metrics_cards()
         render_charts()
+        render_resultado_processamento(st.session_state.resultado_processamento)
+    elif st.session_state.resultado_processamento and not st.session_state.resultado_processamento.get('sucesso'):
+        st.error(f"❌ Erro no último processamento: {st.session_state.resultado_processamento.get('erro', 'Erro desconhecido')}")
+        st.markdown("### 🔍 Visão Geral do Sistema")
     else:
-        st.info("💡 Execute um processamento para ver as métricas no dashboard")
-    
-    # Status do sistema
-    render_system_overview()
+        st.info("💡 Execute um processamento na aba 'Processamento' para ver as métricas no dashboard")
+        st.markdown("### 🔍 Visão Geral do Sistema")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("""
+            <div class="alert-info alert-box">
+                <h4>✅ Funcionalidades Ativas</h4>
+                <ul>
+                    <li>Processamento automatizado de VR/VA</li>
+                    <li>Validação inteligente de dados</li>
+                    <li>Análise com IA para insights</li>
+                    <li>Geração de relatórios completos</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown("""
+            <div class="alert-success alert-box">
+                <h4>📊 Métricas de Qualidade</h4>
+                <ul>
+                    <li>Validação automática de dados</li>
+                    <li>Detecção de inconsistências</li>
+                    <li>Relatórios de auditoria</li>
+                    <li>Rastreabilidade completa</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
 
 def render_metrics_cards():
     """Renderiza os cards de métricas"""
@@ -426,7 +447,6 @@ def render_charts():
             df_resumo = pd.DataFrame(resultado['resumo_sindicatos'])
             
             if not df_resumo.empty and 'Sindicato' in df_resumo.columns and 'VR_Total' in df_resumo.columns:
-                # Gráfico de barras usando st.bar_chart
                 chart_data = df_resumo.set_index('Sindicato')['VR_Total']
                 st.bar_chart(chart_data)
         
@@ -435,7 +455,6 @@ def render_charts():
             empresa = resultado['total_empresa']
             colaborador = resultado['total_colaborador']
             
-            # Gráfico de pizza usando st.dataframe com formatação
             proporcao_data = {
                 'Categoria': ['Empresa (80%)', 'Colaborador (20%)'],
                 'Valor (R$)': [empresa, colaborador],
@@ -443,16 +462,6 @@ def render_charts():
             }
             df_proporcao = pd.DataFrame(proporcao_data)
             st.dataframe(df_proporcao, use_container_width=True)
-            
-            # Mostrar valores como texto
-            st.markdown(f"""
-            <div class="chart-container">
-                <h4>💰 Distribuição de Custos</h4>
-                <p><strong>Empresa:</strong> R$ {empresa:,.2f} (80%)</p>
-                <p><strong>Colaborador:</strong> R$ {colaborador:,.2f} (20%)</p>
-                <p><strong>Total:</strong> R$ {empresa + colaborador:,.2f}</p>
-            </div>
-            """, unsafe_allow_html=True)
 
 def render_system_overview():
     """Renderiza visão geral do sistema"""
@@ -501,7 +510,7 @@ def render_processing():
                     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
                     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
                 ],
-                index=8  # Setembro como padrão
+                index=4  # Maio como padrão
             )
         
         with col2:
@@ -549,7 +558,7 @@ def render_processing():
         
         # Botão de processamento
         submitted = st.form_submit_button(
-            "�� Iniciar Processamento",
+            "🚀 Iniciar Processamento",
             use_container_width=True
         )
     
@@ -573,10 +582,6 @@ def processar_dados(mes, ano, empresa_pct, colaborador_pct, validar_ia, relatori
         st.error("❌ A soma dos percentuais deve ser 100%")
         return
     
-    # Atualizar configurações se necessário
-    if empresa_pct != 80 or colaborador_pct != 20:
-        st.warning("⚠️ Percentuais personalizados serão aplicados no próximo processamento")
-    
     # Iniciar processamento
     st.session_state.processamento_ativo = True
     
@@ -586,7 +591,7 @@ def processar_dados(mes, ano, empresa_pct, colaborador_pct, validar_ia, relatori
             progress_bar = st.progress(0)
             status_text = st.empty()
             
-            # Simular progresso (em produção, isso seria real)
+            # Simular progresso
             steps = [
                 "Carregando planilhas...",
                 "Validando dados...",
@@ -610,7 +615,7 @@ def processar_dados(mes, ano, empresa_pct, colaborador_pct, validar_ia, relatori
             
             # Armazenar resultado
             st.session_state.resultado_processamento = resultado
-            st.session_state.processamento_ativo = False
+            st.session_state.processamento_ativo = True
             
             # Mostrar resultado
             if resultado["sucesso"]:
@@ -627,7 +632,7 @@ def render_resultado_processamento(resultado):
     """Renderiza o resultado do processamento"""
     
     # Métricas principais
-    st.markdown("### �� Resultado do Processamento")
+    st.markdown("### 📊 Resultado do Processamento")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -659,74 +664,29 @@ def render_resultado_processamento(resultado):
             delta=None
         )
     
-    # Detalhes do processamento
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("#### �� Distribuição de Custos")
-        st.write(f"**Empresa (80%):** R$ {resultado['total_empresa']:,.2f}")
-        st.write(f"**Colaborador (20%):** R$ {resultado['total_colaborador']:,.2f}")
-    
-    with col2:
-        st.markdown("#### 🚫 Exclusões Aplicadas")
-        if resultado.get('exclusoes_aplicadas'):
-            for exclusao in resultado['exclusoes_aplicadas']:
-                st.write(f"• {exclusao}")
-        else:
-            st.write("Nenhuma exclusão aplicada")
-    
-    # Insights da IA
-    if resultado.get('insights_ia'):
-        render_ai_insights(resultado['insights_ia'])
-    
     # Download do arquivo
+    st.markdown("### 📥 Download do Relatório")
+    
     if os.path.exists(resultado["arquivo_saida"]):
-        st.markdown("### �� Download do Relatório")
-        
-        with open(resultado["arquivo_saida"], "rb") as file:
-            st.download_button(
-                label="📊 Baixar Relatório Completo",
-                data=file.read(),
-                file_name=os.path.basename(resultado["arquivo_saida"]),
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
-            )
-
-def render_ai_insights(insights):
-    """Renderiza os insights da IA"""
-    st.markdown("### 🤖 Insights da Inteligência Artificial")
-    
-    if insights.get('resumo_geral'):
-        st.markdown(f"""
-        <div class="alert-info alert-box">
-            <h4>📋 Resumo Geral</h4>
-            <p>{insights['resumo_geral']}</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    if insights.get('alertas'):
-        st.markdown(f"""
-        <div class="alert-warning alert-box">
-            <h4>⚠️ Alertas</h4>
-            <ul>
-                {''.join([f'<li>{alerta}</li>' for alerta in insights['alertas']])}
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    if insights.get('sugestoes'):
-        st.markdown(f"""
-        <div class="alert-success alert-box">
-            <h4>�� Sugestões</h4>
-            <ul>
-                {''.join([f'<li>{sugestao}</li>' for sugestao in insights['sugestoes']])}
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        try:
+            with open(resultado["arquivo_saida"], "rb") as file:
+                st.download_button(
+                    label="📊 Baixar Relatório Completo",
+                    data=file.read(),
+                    file_name=os.path.basename(resultado["arquivo_saida"]),
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
+                st.success(f"✅ Arquivo disponível: {os.path.basename(resultado['arquivo_saida'])}")
+        except Exception as e:
+            st.error(f"❌ Erro ao carregar arquivo para download: {e}")
+    else:
+        st.error(f"❌ Arquivo não encontrado: {resultado.get('arquivo_saida', 'N/A')}")
+        st.info("💡 Execute um novo processamento para gerar o relatório")
 
 def render_reports():
     """Renderiza a seção de relatórios"""
-    st.markdown("## 📊 Relatórios e Análises")
+    st.markdown("## 📋 Relatórios e Análises")
     
     if st.session_state.resultado_processamento:
         # Relatório atual
@@ -735,10 +695,7 @@ def render_reports():
         # Histórico de relatórios
         render_report_history()
     else:
-        st.info("💡 Execute um processamento para gerar relatórios")
-    
-    # Relatórios disponíveis
-    render_available_reports()
+        st.info("💡 Execute um processamento na aba 'Processamento' para gerar relatórios")
 
 def render_current_report():
     """Renderiza o relatório atual"""
@@ -771,9 +728,9 @@ def render_report_history():
     """Renderiza histórico de relatórios"""
     st.markdown("### 📚 Histórico de Relatórios")
     
-    # Simular histórico (em produção, isso viria do banco de dados)
+    # Simular histórico
     historico = [
-        {"data": "2025-09-15", "mes": "Setembro 2025", "status": "Concluído", "arquivo": "VR_2025_09_Processado.xlsx"},
+        {"data": "2025-09-18", "mes": "Setembro 2025", "status": "Concluído", "arquivo": "VR_2025_09_Processado.xlsx"},
         {"data": "2025-08-15", "mes": "Agosto 2025", "status": "Concluído", "arquivo": "VR_2025_08_Processado.xlsx"},
         {"data": "2025-07-15", "mes": "Julho 2025", "status": "Concluído", "arquivo": "VR_2025_07_Processado.xlsx"},
     ]
@@ -781,39 +738,9 @@ def render_report_history():
     df_historico = pd.DataFrame(historico)
     st.dataframe(df_historico, use_container_width=True)
 
-def render_available_reports():
-    """Renderiza relatórios disponíveis"""
-    st.markdown("### 📁 Relatórios Disponíveis")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("""
-        **�� Relatório Principal**
-        - Dados consolidados para operadora
-        - Formato padrão VR Mensal
-        - Pronto para envio
-        """)
-    
-    with col2:
-        st.markdown("""
-        **📈 Relatório por Sindicato**
-        - Consolidação por sindicato
-        - Métricas de comparação
-        - Análise de tendências
-        """)
-    
-    with col3:
-        st.markdown("""
-        **✅ Relatório de Validações**
-        - Problemas detectados
-        - Sugestões de correção
-        - Auditoria completa
-        """)
-
 def render_ai_queries():
     """Renderiza a seção de consultas IA"""
-    st.markdown("## �� Consultas com Inteligência Artificial")
+    st.markdown("## 🤖 Consultas com Inteligência Artificial")
     
     # Interface de consulta
     st.markdown("### 💬 Faça uma Pergunta")
@@ -848,48 +775,11 @@ def render_ai_queries():
         elif consultar and not pergunta:
             st.warning("⚠️ Digite uma pergunta antes de consultar a IA")
     
-    # Exemplos de perguntas
-    st.markdown("### �� Exemplos de Perguntas")
-    
-    exemplos = [
-        "Quantos funcionários foram excluídos do processamento?",
-        "Qual sindicato tem o maior custo total de VR?",
-        "Há alguma anomalia nos dados que preciso verificar?",
-        "Como posso otimizar o processo de VR?",
-        "Quais são as principais tendências dos últimos meses?",
-        "Existem funcionários com valores de VR muito altos ou baixos?"
-    ]
-    
-    for exemplo in exemplos:
-        if st.button(f"💬 {exemplo}", key=f"exemplo_{exemplo}"):
-            st.session_state.pergunta_exemplo = exemplo
-            st.rerun()
-    
-    # Se uma pergunta de exemplo foi selecionada
-    if 'pergunta_exemplo' in st.session_state:
-        pergunta = st.session_state.pergunta_exemplo
-        del st.session_state.pergunta_exemplo
-        
-        try:
-            with st.spinner("�� Analisando dados..."):
-                resposta = st.session_state.agente.consult_ai(pergunta)
-            
-            st.markdown(f"""
-            <div class="alert-info alert-box">
-                <h4>🤖 Resposta da IA</h4>
-                <p><strong>Pergunta:</strong> {pergunta}</p>
-                <p><strong>Resposta:</strong> {resposta}</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        except Exception as e:
-            st.error(f"❌ Erro na consulta: {str(e)}")
-
 def render_footer():
     """Renderiza o footer"""
     st.markdown("""
     <div class="corporate-footer">
-        <p><strong>�� Sistema VR/VA - Automação Corporativa</strong></p>
+        <p><strong>🏢 Sistema VR/VA - Automação Corporativa</strong></p>
         <p>Desenvolvido com ❤️ usando OpenAI GPT e Streamlit</p>
         <p>Versão 2.0 - Arquitetura Limpa e Modular</p>
     </div>

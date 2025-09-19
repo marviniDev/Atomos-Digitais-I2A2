@@ -107,7 +107,7 @@ class VRAgentRefactored:
         Args:
             ano: Ano de referência
             mes: Mês de referência
-            nome_saida: Nome do arquivo de saída (opcional)
+            nome_saida: nome do arquivo de saída (opcional)
             use_database: Se True, usa dados do banco de dados
             
         Returns:
@@ -118,25 +118,23 @@ class VRAgentRefactored:
         try:
             # 1. Carregar dados para validação (banco já carregado)
             logger.info("📁 Dados já carregados automaticamente, usando banco de dados...")
-            # Carregar dados para validação (sem salvar no banco)
-            spreadsheets = self.data_loader.load_all_spreadsheets(load_to_db=False)
             
-            # 3. Validar estrutura e qualidade dos dados
-            logger.info("🔍 Validando dados...")
-            validation_summary = self.validator.get_validation_summary(spreadsheets)
+            # 3. Validar dados diretamente do banco (sem recarregar planilhas)
+            logger.info("🔍 Validando dados do banco...")
+            validation_summary = self._validate_database_data()
             
             if validation_summary["total_problemas"] > 0:
                 logger.warning(f"⚠️ Encontrados {validation_summary['total_problemas']} problemas nos dados")
             
-            # 4. Processar com IA (se disponível)
+            # 4. Processar com IA usando dados do banco
             insights_ia = {}
             if self.ai_service:
                 logger.info("🤖 Processando com IA...")
-                insights_ia = self.ai_service.process_data_with_ai(spreadsheets, ano, mes)
+                insights_ia = self._process_ai_with_database(ano, mes)
             
             # 5. Aplicar exclusões
             logger.info("🚫 Aplicando exclusões...")
-            df_base = spreadsheets["ativos"].copy()
+            df_base = self._get_ativos_from_database()
             df_elegiveis, exclusoes_aplicadas = self.calculator.apply_exclusions_from_db(df_base)
             
             # 6. Calcular dias úteis
@@ -159,7 +157,7 @@ class VRAgentRefactored:
             
             # 10. Salvar arquivo final
             if nome_saida is None:
-                nome_saida = f"VR_{ano}_{mes:02d}_Processado_Completo.xlsx"
+                nome_saida = f"VR_{ano}_{mes:02d}.xlsx"
             
             logger.info("💾 Salvando arquivo final...")
             caminho_saida = self.report_generator.save_complete_report(
@@ -172,11 +170,11 @@ class VRAgentRefactored:
             resultado = {
                 "sucesso": True,
                 "arquivo_saida": caminho_saida,
-                "total_funcionarios_inicial": len(spreadsheets["ativos"]),
+                "total_funcionarios_inicial": len(df_base),
                 "total_funcionarios_final": len(df_final),
-                "total_vr": df_final["VR_Total"].sum(),
-                "total_empresa": df_final["%_Empresa"].sum(),
-                "total_colaborador": df_final["%_Colaborador"].sum(),
+                "total_vr": df_final["vr_total"].sum(),
+                "total_empresa": df_final["%_empresa"].sum(),
+                "total_colaborador": df_final["%_colaborador"].sum(),
                 "exclusoes_aplicadas": exclusoes_aplicadas,
                 "problemas_encontrados": len(problemas),
                 "insights_ia": insights_ia,
@@ -204,49 +202,100 @@ class VRAgentRefactored:
     
     def consult_ai(self, pergunta: str) -> str:
         """
-        Permite fazer consultas diretas à IA sobre os dados de VR
+        Agente IA dinâmico que analisa perguntas e gera SQL ou respostas genéricas
         
         Args:
             pergunta: Pergunta do usuário
             
         Returns:
-            str: Resposta da IA
+            str: Resposta da IA com dados do banco ou resposta genérica
         """
         try:
-            # Carregar dados atuais se disponível
-            spreadsheets = {}
-            if config.get_data_path().exists():
-                spreadsheets = self.data_loader.load_all_spreadsheets(load_to_db=False)
+            logger.info(f"🤖 Processando consulta IA: {pergunta}")
             
-            # Preparar dados de contexto
-            context_data = {}
-            for nome, df in spreadsheets.items():
-                context_data[nome] = {
-                    "linhas": len(df),
-                    "colunas": list(df.columns),
-                    "amostra": df.head(3).to_dict('records') if len(df) > 0 else []
-                }
+            # Usar IA para analisar a pergunta e decidir a estratégia
+            analysis = self._analyze_question_with_ai(pergunta)
             
-            # Se IA disponível, usar IA
-            if self.ai_service:
-                return self.ai_service.consult_ai(pergunta, context_data)
-            
-            # Se IA não disponível, usar análise local
-            return self._analyze_data_locally(pergunta, context_data)
-            
+            if analysis["requires_database"]:
+                return self._multi_analyst(pergunta, analysis)
+            else:
+                return self._consult_generic(pergunta)
+                
         except Exception as e:
             logger.error(f"Erro na consulta IA: {e}")
             return f"Erro ao consultar dados: {e}"
     
-    def consult_ai_with_database(self, pergunta: str) -> str:
+    def _analyze_question_with_ai(self, pergunta: str) -> dict:
         """
-        Permite fazer consultas diretas à IA usando dados do banco de dados
+        Analisa a pergunta usando IA para determinar estratégia de resposta
         
         Args:
             pergunta: Pergunta do usuário
             
         Returns:
-            str: Resposta da IA
+            dict: Análise da pergunta com estratégia recomendada
+        """
+        try:
+            if not self.ai_service:
+                # Fallback para análise simples
+                return {
+                    "requires_database": self._is_database_query(pergunta),
+                    "query_type": "simple",
+                    "confidence": 0.5
+                }
+            
+            # Usar IA para análise mais sofisticada
+            prompt = f"""
+            Analise a seguinte pergunta sobre dados de VR/VA e determine:
+            1. Se requer consulta ao banco de dados (requires_database: true/false)
+            2. Tipo de consulta (query_type: count/sum/group/filter/list)
+            3. Confiança na análise (confidence: 0.0-1.0)
+            4. Tabelas relevantes (tables: [lista])
+            5. Campos relevantes (fields: [lista])
+            
+            Pergunta: "{pergunta}"
+            
+            Responda em formato JSON:
+            {{
+                "requires_database": boolean,
+                "query_type": "string",
+                "confidence": float,
+                "tables": ["string"],
+                "fields": ["string"]
+            }}
+            """
+            
+            response = self.ai_service.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1
+            )
+            
+            # Parse da resposta JSON
+            import json
+            analysis = json.loads(response.choices[0].message.content)
+            return analysis
+            
+        except Exception as e:
+            logger.warning(f"Erro na análise IA, usando fallback: {e}")
+            return {
+                "requires_database": self._is_database_query(pergunta),
+                "query_type": "simple",
+                "confidence": 0.5,
+                "tables": [],
+                "fields": []
+            }
+    
+    def _multi_analyst(self, question: str, analysis: dict) -> str:
+        """
+        Analisa a pergunta e gera consulta SQL baseada no schema do banco VR
+        
+        Args:
+            question: Pergunta do usuário
+            analysis: Análise da pergunta feita pela IA
+            
+        Returns:
+            str: Resposta com dados do banco
         """
         try:
             if not self.db_manager:
@@ -255,139 +304,235 @@ class VRAgentRefactored:
             # Obter schema do banco
             schema_info = self.db_manager.get_schema_info()
             
-            # Preparar contexto com dados do banco
-            context_data = {}
-            for table_name, info in schema_info.items():
-                # Obter contagem de registros
-                count_query = f"SELECT COUNT(*) as total FROM {table_name}"
-                count_result = self.db_manager.execute_query(count_query)
-                total_records = count_result[0]['total'] if count_result else 0
+            # Gerar SQL usando IA
+            sql_query = self._generate_sql_with_ai(question, schema_info, analysis)
+            
+            if sql_query:
+                logger.info(f"🔍 Executando SQL: {sql_query}")
                 
-                context_data[table_name] = {
-                    "linhas": total_records,
-                    "colunas": info['columns'],
-                    "tipos": info['types']
-                }
+                # Executar consulta SQL
+                result = self.db_manager.execute_query(sql_query)
+                
+                # Formatar resultado com IA
+                if result:
+                    return self._format_result_with_ai(question, result, sql_query)
+                else:
+                    return f"❌ Nenhum resultado encontrado para a consulta."
+            else:
+                logger.warning("Não foi possível gerar SQL, usando resposta genérica")
+                return self._consult_generic(question)
+                
+        except Exception as e:
+            logger.error(f"Erro no multi_analyst: {e}")
+            return f"Erro ao consultar banco de dados: {e}"
+    
+    def _generate_sql_with_ai(self, question: str, schema_info: dict, analysis: dict) -> str:
+        """
+        Gera consulta SQL usando IA baseada na pergunta e schema
+        
+        Args:
+            question: Pergunta do usuário
+            schema_info: Schema do banco de dados
+            analysis: Análise da pergunta
             
-            # Se IA disponível, usar IA
-            if self.ai_service:
-                return self.ai_service.consult_ai(pergunta, context_data)
+        Returns:
+            str: Consulta SQL gerada
+        """
+        try:
+            if not self.ai_service:
+                logger.warning("IA não disponível, não é possível gerar SQL dinâmico")
+                return None
             
-            # Se IA não disponível, usar análise local
-            return self._analyze_data_locally(pergunta, context_data)
+            # Prompt para gerar SQL
+            prompt = f"""
+            Gere uma consulta SQL para responder à pergunta sobre dados de VR/VA.
+            
+            Pergunta: "{question}"
+            
+            Schema do banco de dados:
+            {schema_info}
+            
+            Análise da pergunta:
+            {analysis}
+            
+            Regras:
+            1. Use apenas tabelas e campos que existem no schema
+            2. Use nomes corretos para tabelas e colunas
+            3. Inclua ORDER BY quando apropriado
+            4. Use LIMIT para consultas que podem retornar muitos resultados
+            5. Retorne apenas a consulta SQL, sem explicações
+            
+            SQL:
+            """
+            
+            response = self.ai_service.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1
+            )
+            
+            sql_query = response.choices[0].message.content.strip()
+            
+            # Validar se é uma consulta SQL válida
+            if sql_query.upper().startswith(('SELECT', 'WITH')):
+                return sql_query
+            else:
+                logger.warning(f"SQL gerado pela IA não é válido: {sql_query}")
+                return None
+                
+        except Exception as e:
+            logger.warning(f"Erro ao gerar SQL com IA: {e}")
+            return None
+    
+    def _format_result_with_ai(self, question: str, result: list, sql_query: str) -> str:
+        """
+        Formata resultado da consulta usando IA
+        
+        Args:
+            question: Pergunta original
+            result: Resultado da consulta SQL
+            sql_query: Consulta SQL executada
+            
+        Returns:
+            str: Resultado formatado
+        """
+        try:
+            if not self.ai_service or not result:
+                return self._format_query_result(question, result, sql_query)
+            
+            # Converter resultado para string para IA
+            result_str = str(result[:10])  # Limitar a 10 registros
+            
+            prompt = f"""
+            Formate o resultado da consulta SQL de forma clara e útil.
+            
+            Pergunta: "{question}"
+            Consulta SQL: {sql_query}
+            Resultado: {result_str}
+            
+            Instruções:
+            1. Responda de forma natural e conversacional
+            2. Use emojis quando apropriado
+            3. Destaque informações importantes
+            4. Se houver muitos resultados, mencione isso
+            5. Seja específico com números e dados
+            
+            Resposta:
+            """
+            
+            response = self.ai_service.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3
+            )
+            
+            return response.choices[0].message.content.strip()
             
         except Exception as e:
-            logger.error(f"Erro na consulta IA com banco: {e}")
-            return f"Erro ao consultar dados do banco: {e}"
+            logger.warning(f"Erro ao formatar com IA, usando fallback: {e}")
+            return self._format_query_result(question, result, sql_query)
     
-    def _analyze_data_locally(self, pergunta: str, context_data: Dict) -> str:
+    def _is_database_query(self, pergunta: str) -> bool:
         """
-        Analisa dados localmente quando IA não está disponível
+        Determina se a pergunta requer consulta ao banco de dados
         
         Args:
             pergunta: Pergunta do usuário
-            context_data: Dados de contexto
             
         Returns:
-            str: Resposta baseada em análise local
+            bool: True se requer consulta ao banco
+        """
+        # Palavras-chave que indicam necessidade de dados específicos
+        database_keywords = [
+            'quantos', 'quantas', 'total', 'soma', 'média', 'máximo', 'mínimo',
+            'funcionários', 'matrícula', 'cargo', 'sindicato', 'valor', 'vr',
+            'excluídos', 'afastados', 'desligados', 'estagiários', 'aprendizes',
+            'férias', 'admissões', 'dias úteis', 'por sindicato', 'por cargo',
+            'listar', 'mostrar', 'encontrar', 'buscar', 'filtrar'
+        ]
+        
+        pergunta_lower = pergunta.lower()
+        return any(keyword in pergunta_lower for keyword in database_keywords)
+    
+    def _consult_generic(self, pergunta: str) -> str:
+        """
+        Consulta genérica quando não precisa de dados do banco
+        
+        Args:
+            pergunta: Pergunta do usuário
+            
+        Returns:
+            str: Resposta genérica
         """
         pergunta_lower = pergunta.lower()
         
-        # Análise de sindicatos (verificar primeiro para evitar conflito com "existem")
-        if any(palavra in pergunta_lower for palavra in ['sindicato', 'sindicatos']):
-            if 'sindicatos' in context_data:
-                total_sindicatos = context_data['sindicatos']['linhas']
-                return f"📊 **Total de sindicatos:** {total_sindicatos}\n\n💡 *Análise baseada nos dados carregados da planilha Sindicatos.xlsx*"
-            else:
-                return "❌ Não foi possível carregar os dados de sindicatos. Verifique se a planilha Sindicatos.xlsx está na pasta data/input/"
+        if 'vr' in pergunta_lower and ('o que é' in pergunta_lower or 'como funciona' in pergunta_lower):
+            return """🍽️ **VR (Vale Refeição)** é um benefício trabalhista que permite aos funcionários adquirir refeições em estabelecimentos credenciados. No sistema, é calculado baseado nos dias úteis trabalhados e valores por sindicato."""
         
-        # Análise de férias
-        elif any(palavra in pergunta_lower for palavra in ['ferias', 'férias', 'ausencia', 'ausência', 'estao de ferias']):
-            if 'ferias' in context_data:
-                total_ferias = context_data['ferias']['linhas']
-                return f"📊 **Funcionários com férias:** {total_ferias}\n\n💡 *Análise baseada nos dados carregados da planilha Ferias.xlsx*"
-            else:
-                return "❌ Não foi possível carregar os dados de férias. Verifique se a planilha Ferias.xlsx está na pasta data/input/"
+        elif 'como funciona' in pergunta_lower and 'sistema' in pergunta_lower:
+            return """📋 **Como funciona o cálculo de VR:**
+
+1. **Base:** Dias úteis por sindicato
+2. **Ajustes:** Férias, admissões, desligamentos
+3. **Valor:** Dias × Valor por dia do sindicato
+4. **Divisão:** 80% empresa + 20% funcionário"""
         
-        # Análise de afastados
-        elif any(palavra in pergunta_lower for palavra in ['afastado', 'afastados', 'licenca', 'licença']):
-            if 'afastados' in context_data:
-                total_afastados = context_data['afastados']['linhas']
-                return f"📊 **Funcionários afastados:** {total_afastados}\n\n💡 *Análise baseada nos dados carregados da planilha Afastados.xlsx*"
-            else:
-                return "❌ Não foi possível carregar os dados de afastados. Verifique se a planilha Afastados.xlsx está na pasta data/input/"
-        
-        # Análise de desligados
-        elif any(palavra in pergunta_lower for palavra in ['desligado', 'desligados', 'demitido', 'demitidos', 'foram desligados']):
-            if 'desligados' in context_data:
-                total_desligados = context_data['desligados']['linhas']
-                return f"📊 **Funcionários desligados:** {total_desligados}\n\n💡 *Análise baseada nos dados carregados da planilha Desligados.xlsx*"
-            else:
-                return "❌ Não foi possível carregar os dados de desligados. Verifique se a planilha Desligados.xlsx está na pasta data/input/"
-        
-        # Análise de admissões
-        elif any(palavra in pergunta_lower for palavra in ['admissao', 'admissão', 'admitido', 'admitidos', 'novo', 'novos']):
-            if 'admissoes' in context_data:
-                total_admissoes = context_data['admissoes']['linhas']
-                return f"📊 **Novas admissões:** {total_admissoes}\n\n💡 *Análise baseada nos dados carregados da planilha Admissoes.xlsx*"
-            else:
-                return "❌ Não foi possível carregar os dados de admissões. Verifique se a planilha Admissoes.xlsx está na pasta data/input/"
-        
-        # Análise de estagiários
-        elif any(palavra in pergunta_lower for palavra in ['estagiario', 'estagiários', 'estagio', 'estágio']):
-            if 'estagio' in context_data:
-                total_estagio = context_data['estagio']['linhas']
-                return f"📊 **Estagiários:** {total_estagio}\n\n💡 *Análise baseada nos dados carregados da planilha Estagio.xlsx*"
-            else:
-                return "❌ Não foi possível carregar os dados de estagiários. Verifique se a planilha Estagio.xlsx está na pasta data/input/"
-        
-        # Análise de aprendizes
-        elif any(palavra in pergunta_lower for palavra in ['aprendiz', 'aprendizes']):
-            if 'aprendiz' in context_data:
-                total_aprendiz = context_data['aprendiz']['linhas']
-                return f"📊 **Aprendizes:** {total_aprendiz}\n\n💡 *Análise baseada nos dados carregados da planilha Aprendiz.xlsx*"
-            else:
-                return "❌ Não foi possível carregar os dados de aprendizes. Verifique se a planilha Aprendiz.xlsx está na pasta data/input/"
-        
-        # Análise de exterior
-        elif any(palavra in pergunta_lower for palavra in ['exterior', 'fora', 'internacional']):
-            if 'exterior' in context_data:
-                total_exterior = context_data['exterior']['linhas']
-                return f"📊 **Funcionários no exterior:** {total_exterior}\n\n💡 *Análise baseada nos dados carregados da planilha Exterior.xlsx*"
-            else:
-                return "❌ Não foi possível carregar os dados de exterior. Verifique se a planilha Exterior.xlsx está na pasta data/input/"
-        
-        # Análise de funcionários (verificar por último para evitar conflitos)
-        elif any(palavra in pergunta_lower for palavra in ['funcionario', 'funcionários', 'colaborador', 'colaboradores', 'pessoas', 'existem']):
-            if 'funcionarios_ativos' in context_data:
-                total_ativos = context_data['funcionarios_ativos']['linhas']
-                return f"📊 **Total de funcionários ativos:** {total_ativos:,}\n\n💡 *Análise baseada nos dados carregados da planilha Ativos.xlsx*"
-            elif 'ativos' in context_data:
-                total_ativos = context_data['ativos']['linhas']
-                return f"📊 **Total de funcionários ativos:** {total_ativos:,}\n\n💡 *Análise baseada nos dados carregados da planilha Ativos.xlsx*"
-            else:
-                return "❌ Não foi possível carregar os dados de funcionários. Verifique se a planilha Ativos.xlsx está na pasta data/input/"
-        
-        # Resumo geral
-        elif any(palavra in pergunta_lower for palavra in ['resumo', 'total', 'geral', 'estatistica', 'estatística']):
-            resumo = "📊 **Resumo dos Dados Carregados:**\n\n"
-            
-            for nome, dados in context_data.items():
-                if dados['linhas'] > 0:
-                    resumo += f"• **{nome.title()}:** {dados['linhas']:,} registros\n"
-            
-            resumo += "\n💡 *Análise baseada nos dados carregados das planilhas*"
-            return resumo
-        
-        # Resposta padrão
         else:
-            resumo = f"🤖 **Análise Local de Dados**\n\nPergunta: {pergunta}\n\n📊 **Dados disponíveis:**\n"
-            for nome, dados in context_data.items():
-                if dados['linhas'] > 0:
-                    resumo += f"• {nome.title()}: {dados['linhas']:,} registros\n"
-            resumo += "\n💡 *Para análise mais avançada, configure a chave da API OpenAI*"
-            return resumo
+            return """🤖 **Consulta genérica:**
+
+Para obter dados específicos, faça perguntas como:
+• 'Quantos funcionários temos?'
+• 'Funcionários por sindicato'
+• 'Valor total de VR'
+• 'Quantos foram excluídos?'
+
+Para informações gerais, pergunte sobre 'como funciona' ou 'o que é VR'."""
     
+
+    def _format_query_result(self, question: str, result: list, sql_query: str) -> str:
+        """
+        Formata resultado da consulta (fallback)
+        
+        Args:
+            question: Pergunta original
+            result: Resultado da consulta SQL
+            sql_query: Consulta SQL executada
+            
+        Returns:
+            str: Resultado formatado
+        """
+        if not result:
+            return f"❌ Nenhum resultado encontrado para a consulta."
+        
+        # Formatação básica
+        if len(result) == 1:
+            # Resultado único
+            row = result[0]
+            if len(row) == 1:
+                # Uma coluna
+                value = list(row.values())[0]
+                return f"📊 **{question}**\n\n**Resposta:** {value:,}" if isinstance(value, (int, float)) else f"📊 **{question}**\n\n**Resposta:** {value}"
+            else:
+                # Múltiplas colunas
+                formatted = "📊 **" + question + "**\n\n"
+                for key, value in row.items():
+                    formatted += f"**{key}:** {value:,}\n" if isinstance(value, (int, float)) else f"**{key}:** {value}\n"
+                return formatted
+        else:
+            # Múltiplos resultados
+            formatted = f"📊 **{question}**\n\n"
+            for i, row in enumerate(result[:5]):  # Limitar a 5 resultados
+                formatted += f"**{i+1}.** "
+                for key, value in row.items():
+                    formatted += f"{key}: {value:,} " if isinstance(value, (int, float)) else f"{key}: {value} "
+                formatted += "\n"
+            
+            if len(result) > 5:
+                formatted += f"\n... e mais {len(result) - 5} resultados"
+            
+            return formatted
+
+
     def get_system_status(self) -> Dict:
         """
         Retorna o status do sistema
@@ -462,6 +607,89 @@ class VRAgentRefactored:
             return None
 
 
+
+    def _validate_database_data(self):
+        """Valida dados diretamente do banco de dados"""
+        try:
+            import pandas as pd
+            ativos_query = "SELECT * FROM funcionarios_ativos"
+            ativos_result = self.db_manager.execute_query(ativos_query)
+            
+            if not ativos_result:
+                return {
+                    "total_planilhas": 1,
+                    "planilhas_validas": 0,
+                    "planilhas_com_problemas": 1,
+                    "problemas_por_planilha": {"ativos": ["Nenhum funcionário encontrado no banco"]},
+                    "total_problemas": 1
+                }
+            
+            df_ativos = pd.DataFrame(ativos_result)
+            spreadsheets = {"ativos": df_ativos}
+            return self.validator.get_validation_summary(spreadsheets)
+            
+        except Exception as e:
+            logger.warning(f"Erro na validação do banco: {e}")
+            return {
+                "total_planilhas": 1,
+                "planilhas_validas": 0,
+                "planilhas_com_problemas": 1,
+                "problemas_por_planilha": {"ativos": [f"Erro na validação: {e}"]},
+                "total_problemas": 1
+            }
+    
+    def _process_ai_with_database(self, ano: int, mes: int):
+        """Processa dados com IA usando informações do banco de dados"""
+        try:
+            import pandas as pd
+            dados_resumo = {}
+            tabelas = ["funcionarios_ativos", "afastados", "estagio", "aprendiz", "exterior", "desligados", "ferias", "admissoes", "sindicatos", "dias_uteis"]
+            
+            for tabela in tabelas:
+                try:
+                    count_query = f"SELECT COUNT(*) as total FROM {tabela}"
+                    result = self.db_manager.execute_query(count_query)
+                    total = result[0]['total'] if result else 0
+                    
+                    sample_query = f"SELECT * FROM {tabela} LIMIT 3"
+                    sample_result = self.db_manager.execute_query(sample_query)
+                    
+                    # Converter resultado em DataFrame para compatibilidade com IA
+                    if sample_result:
+                        df_sample = pd.DataFrame(sample_result)
+                    else:
+                        df_sample = pd.DataFrame()
+                    
+                    dados_resumo[tabela] = df_sample
+                except Exception as e:
+                    logger.warning(f"Erro ao obter dados da tabela {tabela}: {e}")
+                    dados_resumo[tabela] = pd.DataFrame()
+            
+            return self.ai_service.process_data_with_ai(dados_resumo, ano, mes)
+            
+        except Exception as e:
+            logger.warning(f"Erro no processamento IA com banco: {e}")
+            return {}
+    
+    def _get_ativos_from_database(self):
+        """Obtém funcionários ativos do banco de dados"""
+        try:
+            import pandas as pd
+            ativos_query = "SELECT * FROM funcionarios_ativos"
+            ativos_result = self.db_manager.execute_query(ativos_query)
+            
+            if not ativos_result:
+                logger.warning("Nenhum funcionário ativo encontrado no banco")
+                return pd.DataFrame()
+            
+            df_ativos = pd.DataFrame(ativos_result)
+            logger.info(f"✅ {len(df_ativos)} funcionários ativos carregados do banco")
+            return df_ativos
+            
+        except Exception as e:
+            logger.error(f"Erro ao obter ativos do banco: {e}")
+            return pd.DataFrame()
+
 def main():
     """
     Função principal para teste do agente refatorado
@@ -531,10 +759,7 @@ def main():
             
             elif 'consultar' in comando.lower():
                 pergunta = comando.replace('consultar', '').strip()
-                if use_db:
-                    resposta = agente.consult_ai_with_database(pergunta)
-                else:
-                    resposta = agente.consult_ai(pergunta)
+                resposta = agente.consult_ai(pergunta)
                 print(f"🤖 IA: {resposta}")
             
             else:
@@ -542,7 +767,6 @@ def main():
     
     except Exception as e:
         print(f"❌ Erro: {e}")
-
 
 if __name__ == "__main__":
     main()

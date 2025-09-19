@@ -54,6 +54,9 @@ class VRDatabaseManager:
         self.conn = self._local.conn
         self.cursor = self._local.cursor
         
+                # Limpar banco completamente antes de inicializar
+        self._clean_database_completely()
+        
         # Criar tabelas
         self._create_tables()
         
@@ -234,10 +237,7 @@ class VRDatabaseManager:
         """
         conn, cursor = self._get_connection()
         
-        # Limpar dados existentes
-        self.clear_all_data()
-        
-        # Mapeamento de planilhas para tabelas
+       # Mapeamento de planilhas para tabelas
         table_mapping = {
             'ativos': 'funcionarios_ativos',
             'sindicatos': 'sindicatos',
@@ -285,15 +285,40 @@ class VRDatabaseManager:
         columns = list(df_clean.columns)
         placeholders = ', '.join(['?' for _ in columns])
         
-        # Inserir dados
+        # Inserir dados com tratamento melhorado
+        inserted_count = 0
+        error_count = 0
+        
         for _, row in df_clean.iterrows():
-            values = [str(val) if pd.notna(val) else None for val in row.values]
-            cursor.execute(
-                f"INSERT INTO {self._escape_identifier(table_name)} ({', '.join([self._escape_identifier(col) for col in columns])}) VALUES ({placeholders})",
-                values
-            )
+            try:
+                # Tratar valores especiais
+                values = []
+                for val in row.values:
+                    if pd.isna(val):
+                        values.append(None)
+                    elif isinstance(val, (int, float)):
+                        values.append(val)
+                    elif isinstance(val, str):
+                        # Limpar strings
+                        clean_val = str(val).strip()
+                        values.append(clean_val if clean_val else None)
+                    else:
+                        values.append(str(val))
+                
+                # Executar inserção
+                cursor.execute(
+                    f"INSERT INTO {self._escape_identifier(table_name)} ({', '.join([self._escape_identifier(col) for col in columns])}) VALUES ({placeholders})",
+                    values
+                )
+                inserted_count += 1
+                
+            except Exception as e:
+                error_count += 1
+                logger.warning(f"Erro ao inserir linha na tabela {table_name}: {e}")
+                continue
         
         conn.commit()
+        logger.info(f"Tabela {table_name}: {inserted_count} registros inseridos, {error_count} erros")
     
     def clear_all_data(self) -> None:
         """Remove todos os dados das tabelas"""
@@ -316,6 +341,45 @@ class VRDatabaseManager:
         conn.commit()
         logger.info("Dados das tabelas existentes foram removidos")
     
+    
+    def _clean_database_completely(self) -> None:
+        """Remove completamente todos os dados e recria a estrutura do banco"""
+        conn, cursor = self._get_connection()
+        
+        try:
+            # Desabilitar foreign keys temporariamente
+            cursor.execute('PRAGMA foreign_keys = OFF')
+            
+            # Obter lista de todas as tabelas
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+            tables = cursor.fetchall()
+            
+            # Deletar todas as tabelas
+            for table in tables:
+                table_name = table[0]
+                cursor.execute(f'DROP TABLE IF EXISTS {self._escape_identifier(table_name)}')
+                logger.info(f'Tabela {table_name} removida')
+            
+            # Limpar sequências
+            cursor.execute('DELETE FROM sqlite_sequence')
+            
+            # Reabilitar foreign keys
+            cursor.execute('PRAGMA foreign_keys = ON')
+            
+            conn.commit()
+            logger.info('Banco de dados completamente limpo')
+            
+        except Exception as e:
+            logger.error(f'Erro ao limpar banco: {e}')
+            conn.rollback()
+            raise
+        finally:
+            # Reabilitar foreign keys em caso de erro
+            try:
+                cursor.execute('PRAGMA foreign_keys = ON')
+            except:
+                pass
+
     def get_schema_info(self) -> Dict[str, Any]:
         """Obtém informações do schema do banco"""
         conn, cursor = self._get_connection()
@@ -350,6 +414,13 @@ class VRDatabaseManager:
             logger.info(f"Executando consulta: {query}")
             cursor.execute(query)
             
+            # Para comandos INSERT/UPDATE/DELETE, cursor.description é None
+            if cursor.description is None:
+                conn.commit()
+                logger.info(f"Comando executado com sucesso")
+                return []
+            
+            # Para comandos SELECT, processar resultados
             columns = [description[0] for description in cursor.description]
             results = [dict(zip(columns, row)) for row in cursor.fetchall()]
             

@@ -53,7 +53,7 @@ class DataValidator:
     def _validate_ativos_structure(self, df: pd.DataFrame) -> List[str]:
         """Valida estrutura da planilha de ativos"""
         errors = []
-        required_columns = ["Matricula", "Sindicato"]
+        required_columns = ["matricula", "sindicato"]
         
         for col in required_columns:
             if col not in df.columns:
@@ -64,7 +64,7 @@ class DataValidator:
     def _validate_dias_uteis_structure(self, df: pd.DataFrame) -> List[str]:
         """Valida estrutura da planilha de dias úteis"""
         errors = []
-        required_columns = ["Sindicato", "Dias_Uteis_Sindicato"]
+        required_columns = ["sindicato", "dias_uteis_sindicato"]
         
         for col in required_columns:
             if col not in df.columns:
@@ -75,7 +75,7 @@ class DataValidator:
     def _validate_sindicatos_structure(self, df: pd.DataFrame) -> List[str]:
         """Valida estrutura da planilha de sindicatos"""
         errors = []
-        required_columns = ["Sindicato", "Valor_Dia_Sindicato"]
+        required_columns = ["sindicato", "valor_dia_sindicato"]
         
         for col in required_columns:
             if col not in df.columns:
@@ -87,15 +87,15 @@ class DataValidator:
         """Valida estrutura de planilhas que só precisam de matrícula"""
         errors = []
         
-        if "Matricula" not in df.columns:
-            errors.append("Coluna obrigatória 'Matricula' não encontrada")
+        if "matricula" not in df.columns:
+            errors.append("Coluna obrigatória 'matricula' não encontrada")
         
         return errors
     
     def _validate_ferias_structure(self, df: pd.DataFrame) -> List[str]:
         """Valida estrutura da planilha de férias"""
         errors = []
-        required_columns = ["Matricula", "Dias_Ferias", "Dias_Comprados"]
+        required_columns = ["matricula", "Dias_Ferias", "Dias_Comprados"]
         
         for col in required_columns:
             if col not in df.columns:
@@ -106,7 +106,7 @@ class DataValidator:
     def _validate_desligados_structure(self, df: pd.DataFrame) -> List[str]:
         """Valida estrutura da planilha de desligados"""
         errors = []
-        required_columns = ["Matricula", "Data_Desligamento", "Data_Comunicado_Desligamento"]
+        required_columns = ["matricula", "data_desligamento", "Data_Comunicado_Desligamento"]
         
         for col in required_columns:
             if col not in df.columns:
@@ -117,7 +117,7 @@ class DataValidator:
     def _validate_admissoes_structure(self, df: pd.DataFrame) -> List[str]:
         """Valida estrutura da planilha de admissões"""
         errors = []
-        required_columns = ["Matricula", "Data_Admissao"]
+        required_columns = ["matricula", "data_admissao"]
         
         for col in required_columns:
             if col not in df.columns:
@@ -154,14 +154,14 @@ class DataValidator:
         
         # Verificar valores nulos em colunas críticas
         if planilha_type == "ativos":
-            if "Matricula" in df.columns:
-                null_matriculas = df["Matricula"].isnull().sum()
+            if "matricula" in df.columns:
+                null_matriculas = df["matricula"].isnull().sum()
                 if null_matriculas > 0:
                     problems.append(f"Encontradas {null_matriculas} matrículas nulas na planilha de ativos")
         
         # Verificar duplicatas de matrícula
-        if "Matricula" in df.columns:
-            duplicates = df["Matricula"].duplicated().sum()
+        if "matricula" in df.columns:
+            duplicates = df["matricula"].duplicated().sum()
             if duplicates > 0:
                 problems.append(f"Encontradas {duplicates} matrículas duplicadas na planilha '{planilha_type}'")
         

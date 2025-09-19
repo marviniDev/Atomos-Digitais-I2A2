@@ -29,14 +29,14 @@ class ExcelReportGenerator:
         
         # Validações críticas
         for idx, row in df_final.iterrows():
-            matricula = row.get("Matricula", "N/A")
-            dias_vr = row.get("Dias_VR", 0)
-            vr_total = row.get("VR_Total", 0)
+            matricula = row.get("matricula", "N/A")
+            dias_vr = row.get("dias_vr", 0)
+            vr_total = row.get("vr_total", 0)
             
             # Dias zerados com valor > 0
             if dias_vr == 0 and vr_total > 0:
                 validations.append({
-                    "Matricula": matricula,
+                    "matricula": matricula,
                     "Problema": "Dias zerados com valor > 0",
                     "Severidade": "CRÍTICO",
                     "Valor": vr_total
@@ -45,7 +45,7 @@ class ExcelReportGenerator:
             # Sem valor mesmo com dias > 0
             elif dias_vr > 0 and vr_total == 0:
                 validations.append({
-                    "Matricula": matricula,
+                    "matricula": matricula,
                     "Problema": "Sem valor mesmo com dias > 0",
                     "Severidade": "CRÍTICO",
                     "Valor": dias_vr
@@ -54,7 +54,7 @@ class ExcelReportGenerator:
             # Dias negativos
             elif dias_vr < 0:
                 validations.append({
-                    "Matricula": matricula,
+                    "matricula": matricula,
                     "Problema": "Dias negativos",
                     "Severidade": "CRÍTICO",
                     "Valor": dias_vr
@@ -63,7 +63,7 @@ class ExcelReportGenerator:
             # Valor VR negativo
             elif vr_total < 0:
                 validations.append({
-                    "Matricula": matricula,
+                    "matricula": matricula,
                     "Problema": "Valor VR negativo",
                     "Severidade": "CRÍTICO",
                     "Valor": vr_total
@@ -72,7 +72,7 @@ class ExcelReportGenerator:
             # Dias maiores que possível no mês
             elif dias_vr > 31:
                 validations.append({
-                    "Matricula": matricula,
+                    "matricula": matricula,
                     "Problema": "Dias maiores que possível no mês",
                     "Severidade": "ALERTA",
                     "Valor": dias_vr
@@ -81,7 +81,7 @@ class ExcelReportGenerator:
             # Poucos dias trabalhados
             elif dias_vr > 0 and dias_vr < 5:
                 validations.append({
-                    "Matricula": matricula,
+                    "matricula": matricula,
                     "Problema": "Poucos dias trabalhados",
                     "Severidade": "ALERTA",
                     "Valor": dias_vr
@@ -90,7 +90,7 @@ class ExcelReportGenerator:
             # OK
             else:
                 validations.append({
-                    "Matricula": matricula,
+                    "matricula": matricula,
                     "Problema": "ok",
                     "Severidade": "OK",
                     "Valor": vr_total
@@ -111,11 +111,11 @@ class ExcelReportGenerator:
         """
         stats = [
             {"Métrica": "Total Funcionários", "Valor": len(df_final)},
-            {"Métrica": "Total VR", "Valor": f"R$ {df_final['VR_Total'].sum():,.2f}"},
-            {"Métrica": "Total Empresa (80%)", "Valor": f"R$ {df_final['%_Empresa'].sum():,.2f}"},
-            {"Métrica": "Total Colaborador (20%)", "Valor": f"R$ {df_final['%_Colaborador'].sum():,.2f}"},
-            {"Métrica": "Média Dias por Funcionário", "Valor": f"{df_final['Dias_VR'].mean():.1f}"},
-            {"Métrica": "Funcionários com Problemas", "Valor": len(df_final[df_final['VR_Total'] <= 0])}
+            {"Métrica": "Total VR", "Valor": f"R$ {df_final['vr_total'].sum():,.2f}"},
+            {"Métrica": "Total Empresa (80%)", "Valor": f"R$ {df_final['%_empresa'].sum():,.2f}"},
+            {"Métrica": "Total Colaborador (20%)", "Valor": f"R$ {df_final['%_colaborador'].sum():,.2f}"},
+            {"Métrica": "Média Dias por Funcionário", "Valor": f"{df_final['dias_vr'].mean():.1f}"},
+            {"Métrica": "Funcionários com Problemas", "Valor": len(df_final[df_final['vr_total'] <= 0])}
         ]
         
         # Adicionar exclusões aplicadas
@@ -185,7 +185,7 @@ class ExcelReportGenerator:
             df_validacoes: Validações
             df_insights: Insights da IA
             df_statistics: Estatísticas
-            filename: Nome do arquivo
+            filename: nome do arquivo
             
         Returns:
             str: Caminho do arquivo salvo
@@ -202,13 +202,13 @@ class ExcelReportGenerator:
             df_resumo.to_excel(writer, sheet_name="resumo_sindicato", index=False)
             
             # Aba de validações
-            df_validacoes.to_excel(writer, sheet_name="validações", index=False)
+            #df_validacoes.to_excel(writer, sheet_name="validações", index=False)
             
             # Aba com dados completos
-            df_final.to_excel(writer, sheet_name="VR_Completo", index=False)
+            #df_final.to_excel(writer, sheet_name="VR_Completo", index=False)
             
             # Aba com insights da IA
-            df_insights.to_excel(writer, sheet_name="insights_ia", index=False)
+            #df_insights.to_excel(writer, sheet_name="insights_ia", index=False)
             
             # Aba com estatísticas
             df_statistics.to_excel(writer, sheet_name="estatisticas", index=False)
