@@ -35,6 +35,13 @@ auditor_fiscal/
     └── auditor_database.db       # Banco SQLite
 ```
 
+### Preparação dos Dados
+Para gerar o banco de dados, os arquivos CSV devem estar configurados no caminho `auditor_fiscal/data/input/`:
+- `202505_NFe_NotaFiscal.csv` - Arquivo com dados das notas fiscais
+- `202505_NFe_NotaFiscalItem.csv` - Arquivo com dados dos itens das notas fiscais
+
+**Nota**: O sistema detecta automaticamente esses arquivos na pasta `data/input/` e os carrega no banco de dados na inicialização.
+
 ### Como Executar
 1) Criar ambiente e instalar dependências
 ```bash

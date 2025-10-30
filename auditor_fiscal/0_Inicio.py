@@ -1,5 +1,5 @@
 """
-Sistema Auditor Fiscal - Aplicação Principal
+Atomize Auditoria Fiscal - Aplicação Principal
 """
 import streamlit as st
 import sys
@@ -25,12 +25,12 @@ logger = logging.getLogger(__name__)
 
 def main():
     logger.info("=" * 50)
-    logger.info("🚀 Sistema Auditor Fiscal - Iniciando")
+    logger.info("🚀 Atomize Auditoria Fiscal - Iniciando")
     logger.info("=" * 50)
     # Configuração global da página
     st.set_page_config(
-        page_title="Sistema Auditor Fiscal",
-        page_icon="👮‍♂️",
+        page_title="Atomize Auditoria Fiscal",
+        page_icon="🔍",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -39,13 +39,13 @@ def main():
     session_manager = SessionManager()
     
     # Header principal
-    st.title("👮‍♂️ Sistema Auditor Fiscal")
+    st.title("🔍 Atomize Auditoria Fiscal")
     st.markdown("Sistema inteligente para análise e auditoria de dados fiscais")
     st.markdown("---")
     
     # Mensagem de boas-vindas
     st.markdown("""
-    ## 👋 Bem-vindo ao Sistema Auditor Fiscal
+    ## 👋 Bem-vindo ao Atomize Auditoria Fiscal
     
     Este sistema oferece ferramentas avançadas para análise e auditoria de dados fiscais, 
     utilizando inteligência artificial para detectar irregularidades e gerar insights valiosos.
@@ -53,23 +53,26 @@ def main():
     ### 🚀 Funcionalidades Principais
     
     - **🏠 Dashboard**: Visão geral do sistema e métricas principais
-    - **📤 Upload de Documentos**: Carregamento e processamento de arquivos CSV/ZIP
+    - **📋 Notas**: Listagem e análise detalhada de notas fiscais
+    - **📤 Upload de Documentos**: Carregamento e processamento de arquivos CSV/ZIP/XML
     - **🔍 Análise com IA**: Consultas inteligentes e detecção de irregularidades
     - **📊 Relatórios**: Geração de relatórios detalhados e visualizações
     - **⚙️ Configurações**: Configuração do sistema e gerenciamento de dados
     
     ### 📋 Como Começar
     
-    1. **Configure sua chave da API OpenAI** na barra lateral
-    2. **Acesse a página 'Documentos'** para carregar seus dados CSV
-    3. **Use a página 'Análise IA'** para fazer consultas inteligentes
-    4. **Gere relatórios** na página de Relatórios
+    1. **Configure sua chave da API OpenAI** na página de Configurações
+    2. **Acesse a página 'Documentos'** para carregar seus dados CSV, ZIP ou XML
+    3. **Visualize as notas** na página de Notas para análise detalhada
+    4. **Use a página 'Análise IA'** para fazer consultas inteligentes em linguagem natural
+    5. **Gere relatórios** na página de Relatórios com visualizações interativas
     
     ### 💡 Dicas
     
     - Use o menu lateral para navegar entre as páginas
-    - O sistema detecta automaticamente arquivos CSV na pasta `data/input`
+    - Para gerar o banco de dados, os arquivos CSV `202505_NFe_NotaFiscal.csv` e `202505_NFe_NotaFiscalItem.csv` devem estar configurados no caminho `auditor_fiscal/data/input/`
     - Todas as consultas são salvas no histórico para referência futura
+    - Utilize o Dashboard para uma visão geral das métricas fiscais
     """)
     
     # Status do sistema
