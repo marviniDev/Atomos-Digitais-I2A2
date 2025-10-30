@@ -1,0 +1,14 @@
+[server]
+runOnSave = true
+fileWatcherType = "auto"
+
+[runner]
+fastReruns = true
+magicEnabled = true
+
+[logger]
+level = "info"
+
+# Garantir que o diretório src está no PYTHONPATH
+[environment]
+PYTHONPATH = "${PROJECT_ROOT}/src"

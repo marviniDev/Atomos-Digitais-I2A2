@@ -1,0 +1,11 @@
+pysqlite3-binary>=0.5.2
+streamlit>=1.32.0
+crewai>=0.11.0
+crewai-tools>=0.0.7
+langchain-openai>=0.0.5
+pandas>=2.2.0
+python-dotenv>=1.0.0
+openai>=1.12.0
+nest-asyncio>=1.6.0
+# Dependências de desenvolvimento
+watchdog>=3.0.0

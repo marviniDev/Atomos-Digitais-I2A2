@@ -1,38 +1,68 @@
-# Átomos Digitais I2A2
+## Sistema Auditor Fiscal
 
-<img src="https://github.com/user-attachments/assets/dee36576-8d9d-4c97-ba05-8d2e1b38275c" alt="Imagem do Grupo Átomos Digitais" width="400"/>
+Aplicação web em Python (Streamlit) para auditoria fiscal de Notas Fiscais Eletrônicas (NF-e) com apoio de IA. Permite upload de CSV/XML, validação automática, análise inteligente em linguagem natural e geração de relatórios, com persistência em SQLite.
 
-## Descrição do Projeto
+### Principais Funcionalidades
+- **Upload e Processamento**: CSV, XML e ZIP com detecção automática de encoding e separador
+- **Validação Automática**: Duplicatas, campos obrigatórios e conferência de totais (v2)
+- **Análise com IA**: Geração de SQL e respostas em linguagem natural (CrewAI + OpenAI)
+- **Dashboard Executivo**: KPIs e métricas fiscais em tempo real
+- **Relatórios**: Visualizações interativas e exportações
+- **Persistência**: Banco SQLite local thread-safe
 
-Somos um grupo de estudos dedicado à realização de tarefas e desafios propostos pelo Instituto I2A2. Nosso objetivo é promover o aprendizado colaborativo, a troca de conhecimento e o desenvolvimento de soluções inovadoras em ciência de dados e inteligência artificial.
+### Estrutura do Projeto (pasta relevante)
+```text
+auditor_fiscal/
+├── app.py                        # Ponto de entrada Streamlit
+├── pages/                        # Páginas do Streamlit
+│   ├── 1_🏠_Dashboard.py
+│   ├── 2_📋_Notas.py
+│   ├── 3_📤_Documentos.py
+│   ├── 4_🔍_Análise_IA.py
+│   ├── 5_📊_Relatórios.py
+│   └── 6_⚙️_Configurações.py
+├── src/
+│   ├── web_interface/
+│   │   ├── components/ (metrics.py, sidebar.py)
+│   │   └── utils/ (session_manager.py)
+│   ├── database/ (db_manager.py)
+│   ├── services/ (auditor_service.py)
+│   ├── ai_service/ (data_analyzer.py, fiscal_analyzer.py, fiscal_analyzer_v2.py)
+│   ├── data_loader/ (file_processor.py, nfe_xml_processor.py)
+│   └── config/ (settings.py, config_persistence.py)
+└── data/
+    ├── input/                    # CSV/XML de entrada
+    └── auditor_database.db       # Banco SQLite
+```
 
-## Equipe e Colaboradores
+### Como Executar
+1) Criar ambiente e instalar dependências
+```bash
+cd auditor_fiscal
+python -m venv .venv
+source .venv/bin/activate   # Linux/Mac
+# .venv\\Scripts\\activate  # Windows
+pip install -r requirements.txt
+```
 
-| Nome              | E-mail (parcial)         |
-|-------------------|-------------------------|
-| Izabella          | izabellasirqueira12@... |
-| Richard           | richard.programmer.rgba@... |
-| Jansley           | jansley@...             |
-| Roger             | roger.ldr@...           |
-| Laiane            | laianesilvasousa03@...  |
-| Gabriel           | gabriel.bplant@...      |
-| Marcos Vinícius   | vinicius.uchoa2002@...  |
-| Helena Aparecida  | hlanza@...              |
-| Wellington        | wa_andrade@...          |
+2) Definir a chave da OpenAI (opcional para recursos de IA)
+```bash
+export OPENAI_API_KEY="sua_chave_aqui"   # Linux/Mac
+# setx OPENAI_API_KEY "sua_chave_aqui"   # Windows (novo terminal)
+```
 
-## Projetos do Grupo
+3) Iniciar a aplicação
+```bash
+streamlit run app.py
+```
 
-Confira alguns dos projetos desenvolvidos e publicados no GitHub:
+### Requisitos
+- Python 3.8+
+- Pacotes principais: `streamlit`, `pandas`, `langchain-openai`, `crewai`, `pysqlite3-binary`, `nest-asyncio`
 
-- [agent_csv_analyzer](https://github.com/marviniDev/Atomos-Digitais-I2A2/tree/main/agent_csv_analyzer): Agente para análise automatizada de arquivos CSV utilizando inteligência artificial.
+### Referências de Arquitetura e Fluxos
+- Arquitetura detalhada: `ARQUITETURA.md`
+- Fluxogramas dos processos: `FLUXOGRAMAS.md`
 
-Sinta-se à vontade para explorar, contribuir e sugerir melhorias!
-
-## Licença
-
+### Licença
 Este projeto está licenciado sob a Licença MIT.
-
----
-
-> Projeto desenvolvido para o desafio I2A2, promovendo inovação e colaboração em análise de dados com IA.
-
