@@ -1,75 +1,62 @@
-## Sistema Auditor Fiscal
+# Átomos Digitais I2A2
 
-Aplicação web em Python (Streamlit) para auditoria fiscal de Notas Fiscais Eletrônicas (NF-e) com apoio de IA. Permite upload de CSV/XML, validação automática, análise inteligente em linguagem natural e geração de relatórios, com persistência em SQLite.
+<img src="https://github.com/user-attachments/assets/dee36576-8d9d-4c97-ba05-8d2e1b38275c" alt="Imagem do Grupo Átomos Digitais" width="400"/>
 
-### Principais Funcionalidades
-- **Upload e Processamento**: CSV, XML e ZIP com detecção automática de encoding e separador
-- **Validação Automática**: Duplicatas, campos obrigatórios e conferência de totais (v2)
-- **Análise com IA**: Geração de SQL e respostas em linguagem natural (CrewAI + OpenAI)
-- **Dashboard Executivo**: KPIs e métricas fiscais em tempo real
-- **Relatórios**: Visualizações interativas e exportações
-- **Persistência**: Banco SQLite local thread-safe
+## Descrição do Projeto
 
-### Estrutura do Projeto (pasta relevante)
-```text
-auditor_fiscal/
-├── app.py                        # Ponto de entrada Streamlit
-├── pages/                        # Páginas do Streamlit
-│   ├── 1_🏠_Dashboard.py
-│   ├── 2_📋_Notas.py
-│   ├── 3_📤_Documentos.py
-│   ├── 4_🔍_Análise_IA.py
-│   ├── 5_📊_Relatórios.py
-│   └── 6_⚙️_Configurações.py
-├── src/
-│   ├── web_interface/
-│   │   ├── components/ (metrics.py, sidebar.py)
-│   │   └── utils/ (session_manager.py)
-│   ├── database/ (db_manager.py)
-│   ├── services/ (auditor_service.py)
-│   ├── ai_service/ (data_analyzer.py, fiscal_analyzer.py, fiscal_analyzer_v2.py)
-│   ├── data_loader/ (file_processor.py, nfe_xml_processor.py)
-│   └── config/ (settings.py, config_persistence.py)
-└── data/
-    ├── input/                    # CSV/XML de entrada
-    └── auditor_database.db       # Banco SQLite
-```
+Somos um grupo de estudos dedicado à realização de tarefas e desafios propostos pelo Instituto I2A2. Nosso objetivo é promover o aprendizado colaborativo, a troca de conhecimento e o desenvolvimento de soluções inovadoras em ciência de dados e inteligência artificial.
 
-### Preparação dos Dados
-Para gerar o banco de dados, os arquivos CSV devem estar configurados no caminho `auditor_fiscal/data/input/`:
-- `202505_NFe_NotaFiscal.csv` - Arquivo com dados das notas fiscais
-- `202505_NFe_NotaFiscalItem.csv` - Arquivo com dados dos itens das notas fiscais
+## Projetos do Grupo
 
-**Nota**: O sistema detecta automaticamente esses arquivos na pasta `data/input/` e os carrega no banco de dados na inicialização.
+Confira alguns dos projetos desenvolvidos e publicados no GitHub:
 
-### Como Executar
-1) Criar ambiente e instalar dependências
-```bash
-cd auditor_fiscal
-python -m venv .venv
-source .venv/bin/activate   # Linux/Mac
-# .venv\\Scripts\\activate  # Windows
-pip install -r requirements.txt
-```
+### 🔍 Projeto Final: Atomize Auditoria Fiscal
 
-2) Definir a chave da OpenAI (opcional para recursos de IA)
-```bash
-export OPENAI_API_KEY="sua_chave_aqui"   # Linux/Mac
-# setx OPENAI_API_KEY "sua_chave_aqui"   # Windows (novo terminal)
-```
+O **Atomize Auditoria Fiscal** é o projeto final do grupo, uma aplicação web inteligente desenvolvida em Python (Streamlit) para auditoria fiscal automatizada de Notas Fiscais Eletrônicas (NF-e) utilizando Inteligência Artificial.
 
-3) Iniciar a aplicação
-```bash
-streamlit run app.py
-```
+**Principais características:**
+- 🔍 Análise inteligente com IA (CrewAI + OpenAI)
+- 📊 Dashboard executivo com métricas fiscais
+- ✅ Validação automática de documentos
+- 📈 Relatórios e visualizações interativas
+- 💾 Persistência em SQLite
 
-### Requisitos
-- Python 3.8+
-- Pacotes principais: `streamlit`, `pandas`, `langchain-openai`, `crewai`, `pysqlite3-binary`, `nest-asyncio`
+**Tecnologias:** Python, Streamlit, OpenAI GPT, CrewAI, SQLite, Pandas
 
-### Referências de Arquitetura e Fluxos
-- Arquitetura detalhada: `ARQUITETURA.md`
-- Fluxogramas dos processos: `FLUXOGRAMAS.md`
+📂 **Localização:** `auditor_fiscal/`
 
-### Licença
+Para mais detalhes sobre este projeto, consulte o README específico em `auditor_fiscal/README.md` ou a documentação técnica nos arquivos `ARQUITETURA.md` e `FLUXOGRAMAS.md`.
+
+### 📦 Artefatos do Projeto Final
+
+A pasta `Projeto Final - Artefatos/` contém os materiais de apresentação e documentação do projeto final:
+
+**Materiais disponíveis:**
+- 📽️ **Vídeo de Apresentação** (`I2A2_Agentes_Inteligentes_Projeto_Final_Atomos_Digitais.mp4`)
+- 📄 **Apresentação PDF** (`I2A2_Agentes_Inteligentes_Projeto_Final_Atomos_Digitais.pdf`)
+- 📊 **Apresentação PowerPoint** (`I2A2_Agentes_Inteligentes_Projeto_Final_Atomos_Digitais.pptx`)
+
+Esses artefatos foram desenvolvidos para a apresentação final do projeto ao Instituto I2A2, incluindo demonstrações, explicações técnicas e visão geral do sistema **Atomize Auditoria Fiscal**.
+
+📂 **Localização:** `Projeto Final - Artefatos/`
+
+### 📚 Outros Desafios
+
+Os demais desafios e projetos desenvolvidos pelo grupo durante o processo de aprendizado estão organizados em outra pasta do repositório.
+
+---
+
+**Nota:** Este repositório contém o projeto final consolidado. Para acessar todos os desafios desenvolvidos, explore o repositório completo do grupo.
+
+Sinta-se à vontade para explorar, contribuir e sugerir melhorias!
+
+## Licença
+
 Este projeto está licenciado sob a Licença MIT.
+
+---
+
+> Projeto desenvolvido para o desafio I2A2, promovendo inovação e colaboração em análise de dados com IA.
+
+**Átomos Digitais I2A2** - Transformando dados em soluções inteligentes. 🔍
+
