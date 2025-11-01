@@ -26,7 +26,7 @@ def main():
     # Header
     st.title("🏠 Dashboard Principal")
     st.markdown("Visão geral do sistema de auditoria fiscal")
-    st.markdown("---")
+    # st.markdown("---")
     
     # Carregar métricas fiscais
     render_fiscal_metrics()
@@ -49,39 +49,39 @@ def render_fiscal_metrics():
     stats = auditor_service.get_audit_statistics()
     
     # Métricas principais
-    st.subheader("📊 Métricas de Auditoria Fiscal")
+    # st.subheader("📊 Métricas de Auditoria Fiscal")
     
-    col1, col2, col3, col4 = st.columns(4)
+    # col1, col2, col3, col4 = st.columns(4)
     
-    with col1:
-        st.metric(
-            label="📄 Total de Documentos",
-            value=f"{stats['total_documents']:,}",
-            help="Total de documentos fiscais analisados"
-        )
+    # with col1:
+    #     st.metric(
+    #         label="📄 Total de Documentos",
+    #         value=f"{stats['total_documents']:,}",
+    #         help="Total de documentos fiscais analisados"
+    #     )
     
-    with col2:
-        st.metric(
-            label="💰 Valor Total Fiscalizado",
-            value=f"R$ {stats['total_value']:,.2f}",
-            help="Valor total fiscalizado em Reais"
-        )
+    # with col2:
+    #     st.metric(
+    #         label="💰 Valor Total Fiscalizado",
+    #         value=f"R$ {stats['total_value']:,.2f}",
+    #         help="Valor total fiscalizado em Reais"
+    #     )
     
-    with col3:
-        st.metric(
-            label="🚨 Inconsistências",
-            value=f"{stats['total_inconsistencies']:,}",
-            delta=f"{stats['total_inconsistencies']} problemas detectados" if stats['total_inconsistencies'] > 0 else None,
-            help="Total de inconsistências encontradas"
-        )
+    # with col3:
+    #     st.metric(
+    #         label="🚨 Inconsistências",
+    #         value=f"{stats['total_inconsistencies']:,}",
+    #         delta=f"{stats['total_inconsistencies']} problemas detectados" if stats['total_inconsistencies'] > 0 else None,
+    #         help="Total de inconsistências encontradas"
+    #     )
     
-    with col4:
-        avg_time = stats['average_processing_time']
-        st.metric(
-            label="⏱️ Tempo Médio",
-            value=f"{avg_time:.2f}s",
-            help="Tempo médio de processamento"
-        )
+    # with col4:
+    #     avg_time = stats['average_processing_time']
+    #     st.metric(
+    #         label="⏱️ Tempo Médio",
+    #         value=f"{avg_time:.2f}s",
+    #         help="Tempo médio de processamento"
+    #     )
     
     # Auditorias recentes
     st.markdown("---")
@@ -147,41 +147,41 @@ def render_fiscal_metrics():
                 f"Clique aqui para ver os detalhes.")
     
     # Ações rápidas
-    _render_quick_actions()
+    # _render_quick_actions()
 
-def _render_quick_actions():
-    """Renderiza ações rápidas"""
-    st.markdown("---")
-    st.subheader("🚀 Ações Rápidas")
+# def _render_quick_actions():
+#     """Renderiza ações rápidas"""
+#     st.markdown("---")
+#     st.subheader("🚀 Ações Rápidas")
     
-    col1, col2, col3 = st.columns(3)
+#     col1, col2, col3 = st.columns(3)
     
-    with col1:
-        st.markdown("""
-        **📤 Upload de Documentos**
+#     with col1:
+#         st.markdown("""
+#         **📤 Upload de Documentos**
         
-        Carregue arquivos CSV ou ZIP contendo dados fiscais para análise.
-        """)
-        if st.button("Ir para Upload", key="quick_upload", use_container_width=True):
-            st.switch_page("pages/2_📤_Documentos.py")
+#         Carregue arquivos CSV ou ZIP contendo dados fiscais para análise.
+#         """)
+#         if st.button("Ir para Upload", key="quick_upload", use_container_width=True):
+#             st.switch_page("pages/2_📤_Documentos.py")
     
-    with col2:
-        st.markdown("""
-        **🔍 Análise com IA**
+#     with col2:
+#         st.markdown("""
+#         **🔍 Análise com IA**
         
-        Use inteligência artificial para analisar dados fiscais e detectar irregularidades.
-        """)
-        if st.button("Ir para Análise", key="quick_analysis", use_container_width=True):
-            st.switch_page("pages/3_🔍_Análise_IA.py")
+#         Use inteligência artificial para analisar dados fiscais e detectar irregularidades.
+#         """)
+#         if st.button("Ir para Análise", key="quick_analysis", use_container_width=True):
+#             st.switch_page("pages/3_🔍_Análise_IA.py")
     
-    with col3:
-        st.markdown("""
-        **📊 Relatórios**
+#     with col3:
+#         st.markdown("""
+#         **📊 Relatórios**
         
-        Gere relatórios detalhados sobre os dados carregados.
-        """)
-        if st.button("Ir para Relatórios", key="quick_reports", use_container_width=True):
-            st.switch_page("pages/4_📊_Relatórios.py")
+#         Gere relatórios detalhados sobre os dados carregados.
+#         """)
+#         if st.button("Ir para Relatórios", key="quick_reports", use_container_width=True):
+#             st.switch_page("pages/4_📊_Relatórios.py")
 
 if __name__ == "__main__":
     main()
